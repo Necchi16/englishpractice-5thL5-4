@@ -290,10 +290,6 @@
             <div id="city-map">
                 <!-- JavaScriptで道路、建物、クマを生成 -->
             </div>
-            
-            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-bold text-gray-500 hidden md:block">
-                <i class="fas fa-info-circle"></i> 音声でクマを目的地まで案内しよう！
-            </div>
         </div>
     </div>
 
@@ -301,8 +297,9 @@
     <div id="goal-modal" class="fixed inset-0 hidden items-center justify-center backdrop-blur-sm" style="z-index: 200; background-color: rgba(0, 0, 0, 0.6);">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border-4 border-red-400 max-w-lg w-[90%] text-center">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">到着！英語で言ってみよう！</h2>
-            <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 mb-4">
-                <p id="goal-phrase-display" class="text-xl md:text-2xl font-bold text-gray-700 leading-relaxed"></p>
+            <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 mb-4 relative">
+                <!-- 1文ずつ表示するエリア -->
+                <div id="goal-phrase-display" class="flex flex-col text-left mb-2"></div>
                 <button onclick="playGoalPhrase()" class="mt-3 text-blue-500 hover:text-blue-700 bg-blue-100 rounded-full w-10 h-10 flex items-center justify-center mx-auto shadow transition-colors">
                     <i class="fas fa-volume-up text-lg"></i>
                 </button>
@@ -320,19 +317,18 @@
         </div>
     </div>
 
-    <!-- クリアモーダル -->
-    <div id="clear-modal" class="fixed inset-0 hidden items-center justify-center backdrop-blur-sm" style="z-index: 210; background-color: rgba(255, 255, 255, 0.8);">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl border-4 border-yellow-400 text-center max-w-md w-[90%]">
-            <div class="text-6xl mb-4">🎉</div>
-            <h2 class="text-3xl font-black text-yellow-600 mb-2">Goal!!</h2>
-            <p class="text-lg font-bold text-gray-600 mb-6">目的地に到着したよ！</p>
+    <!-- キャラクター選択モーダル -->
+    <div id="character-select-modal" class="fixed inset-0 hidden items-center justify-center backdrop-blur-sm" style="z-index: 220; background-color: rgba(255, 255, 255, 0.9);">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl border-4 border-blue-400 max-w-2xl w-[90%] flex flex-col max-h-[90vh]">
+            <h2 class="text-3xl font-black text-blue-600 mb-2 text-center">一緒にあそぶ仲間を選ぼう！</h2>
+            <p class="text-center text-gray-600 font-bold mb-4">最大 <span class="text-xl text-red-500">5人</span> まで選べるよ（現在: <span id="selected-char-count" class="text-blue-500 text-xl">0</span>人）</p>
             
-            <button onclick="start3DMiniGame()" class="w-full bg-blue-500 hover:bg-blue-600 text-white text-xl font-bold py-4 px-6 rounded-2xl shadow-lg transition-transform transform hover:scale-105 flex justify-center items-center gap-2">
-                <i class="fas fa-coins text-yellow-300"></i> コイン集めゲームであそぶ
-            </button>
+            <div id="character-list-container" class="flex-grow overflow-y-auto custom-scrollbar flex flex-wrap justify-center gap-3 p-4 mb-6 bg-gray-50 rounded-xl border border-gray-200 min-h-[200px] content-start">
+                <!-- JavaScriptでキャラクターリストを生成 -->
+            </div>
             
-            <button onclick="resetGame()" class="mt-4 w-full bg-gray-100 hover:bg-gray-200 text-gray-600 text-lg font-bold py-3 px-6 rounded-xl transition-colors">
-                ちがう場所に行く
+            <button onclick="start3DMiniGame()" class="w-full bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-4 rounded-2xl shadow-lg transition-transform transform hover:scale-105">
+                ゲームスタート！ <i class="fas fa-play ml-2"></i>
             </button>
         </div>
     </div>
@@ -360,7 +356,7 @@
             <p class="text-lg font-bold text-gray-700 mb-4"><span id="result-coins" class="text-2xl text-yellow-500">0</span> 枚のコインを集めたよ！</p>
             
             <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 mb-4">
-                <p class="font-bold text-blue-800">コイン3枚でガチャが1回引けるよ！</p>
+                <p class="font-bold text-blue-800">コイン10枚でガチャが1回引けるよ！</p>
                 <p class="text-lg font-bold mt-1">のこりガチャ回数: <span id="gacha-count-display" class="text-2xl text-blue-600">0</span> 回</p>
             </div>
             
@@ -464,6 +460,7 @@
             target: null,
             neighbor: null,
             goalPhraseData: null,
+            currentGoalStep: 0,
             goalMode: false,
             bearNx: 2, // 初期位置: 中央付近
             bearNy: 4, // 初期位置: 下
@@ -473,7 +470,7 @@
             failCount: 0,
             goalCount: 0, // ゴール回数
             
-            // 新規追加: コマンド選択機能用
+            // コマンド選択機能用
             selectedCommand: null,
             navFailCount: 0,
             
@@ -483,6 +480,8 @@
             gachaCount: 0,
             gachaCharacters: []
         };
+        
+        let selectedCharacterIndices = [];
 
         const ui = {
             map: document.getElementById('city-map'),
@@ -493,13 +492,12 @@
             neighborName: document.getElementById('neighbor-name'),
             mainMicBtn: document.getElementById('main-mic-btn'),
             micStatus: document.getElementById('mic-status'),
-            selectedCommandDisplay: document.getElementById('selected-command-display'), // 追加
-            navSkipBtn: document.getElementById('nav-skip-btn'), // 追加
+            selectedCommandDisplay: document.getElementById('selected-command-display'),
+            navSkipBtn: document.getElementById('nav-skip-btn'),
             goalModal: document.getElementById('goal-modal'),
             goalPhraseDisplay: document.getElementById('goal-phrase-display'),
             goalMicBtn: document.getElementById('goal-mic-btn'),
             goalMicStatus: document.getElementById('goal-mic-status'),
-            clearModal: document.getElementById('clear-modal'),
             skipGoalBtn: document.getElementById('skip-goal-btn')
         };
 
@@ -537,10 +535,14 @@
             const availableWidth = mainArea.clientWidth - padding;
             const availableHeight = mainArea.clientHeight - padding;
             
+            // 要素が非表示等の場合は計算をスキップ
+            if (availableWidth <= 0 || availableHeight <= 0) return;
+            
             let scale = Math.min(availableWidth / mapBaseWidth, availableHeight / mapBaseHeight);
             
-            // 拡大しすぎを防ぐ（最大でも1.0倍まで）
+            // スケールの安全装置（縮小しすぎ・拡大しすぎを防ぐ）
             if (scale > 1.0) scale = 1.0;
+            if (scale < 0.2) scale = 0.2; 
 
             cityMap.style.transform = `scale(${scale})`;
         }
@@ -579,7 +581,7 @@
                 }
             }
 
-            // 建物を配置 (6x4 blocks)
+            // 建物を配置 (5x4 blocks)
             let vocabCopy = [];
             while(vocabCopy.length < MAP_SIZE_X * MAP_SIZE_Y) {
                 vocabCopy = vocabCopy.concat([...vocabularyList].sort(() => 0.5 - Math.random()));
@@ -618,6 +620,13 @@
             bearEl.id = 'bear';
             bearEl.innerHTML = `
                 <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+                    <!-- 左耳 -->
+                    <circle cx="20" cy="80" r="18" fill="#A0522D" />
+                    <circle cx="20" cy="80" r="10" fill="#D2B48C" />
+                    <!-- 右耳 -->
+                    <circle cx="80" cy="80" r="18" fill="#A0522D" />
+                    <circle cx="80" cy="80" r="10" fill="#D2B48C" />
+                    
                     <!-- 体(頭) -->
                     <circle cx="50" cy="55" r="42" fill="#A0522D" />
                     <!-- 鼻周り (前方向き) -->
@@ -692,7 +701,7 @@
             resetBear();
             state.goalMode = false;
             
-            // 新規追加: ゴールセット時の初期化
+            // ゴールセット時の初期化
             state.selectedCommand = null;
             state.navFailCount = 0;
             if(ui.selectedCommandDisplay) ui.selectedCommandDisplay.textContent = "上のリストからフレーズを選んでね";
@@ -812,8 +821,14 @@
                 
                 if (isValid) {
                     const neighborStr = state.neighbor.word;
-                    const phrase = `Turn ${t.turn}. You can see it on your ${side}. It's by the ${neighborStr}.`;
-                    return { phrase: phrase, turn: t.turn, side: side };
+                    return { 
+                        sentences: [
+                            `Turn ${t.turn}.`,
+                            `You can see it on your ${side}.`,
+                            `It's by the ${neighborStr}.`
+                        ],
+                        turn: t.turn, side: side, neighbor: neighborStr
+                    };
                 }
             }
             return null;
@@ -822,10 +837,11 @@
         function triggerGoalMode(phraseData) {
             state.goalMode = true;
             state.goalPhraseData = phraseData;
+            state.currentGoalStep = 0;
             state.failCount = 0;
             ui.skipGoalBtn.classList.add('hidden');
             
-            ui.goalPhraseDisplay.innerHTML = highlightPhrase(phraseData.phrase);
+            updateGoalModalUI();
             ui.goalModal.classList.remove('hidden');
             ui.goalModal.classList.add('flex');
             
@@ -834,7 +850,28 @@
             ui.micStatus.textContent = "目的地周辺に到着！";
         }
 
-        function highlightPhrase(text) {
+        function updateGoalModalUI() {
+            let html = "";
+            state.goalPhraseData.sentences.forEach((sentence, idx) => {
+                const isActive = idx === state.currentGoalStep;
+                const isDone = idx < state.currentGoalStep;
+                let className = "text-xl md:text-2xl font-bold leading-relaxed my-3 transition-all duration-300 ";
+                
+                if (isActive) {
+                    className += "text-blue-700 transform scale-110";
+                } else if (isDone) {
+                    className += "text-gray-400 line-through opacity-70";
+                } else {
+                    className += "text-gray-400 opacity-70";
+                }
+                
+                html += `<div class="${className}">${highlightPhrase(sentence, isActive)}</div>`;
+            });
+            ui.goalPhraseDisplay.innerHTML = html;
+        }
+
+        function highlightPhrase(text, isActive) {
+            if (!isActive) return text;
             return text
                 .replace(/Turn (left|right)/i, '<span class="text-red-500">Turn $1</span>')
                 .replace(/on your (left|right)/i, 'on your <span class="text-red-500">$1</span>')
@@ -964,14 +1001,13 @@
                     state.navFailCount++;
                     ui.micStatus.textContent = `「${text}」と聞こえました。もう一度！`;
                     ui.micStatus.className = "text-[12px] font-bold text-orange-500 mt-2 h-4";
-                    if (state.navFailCount >= 1) {
+                    if (state.navFailCount >= 3) {
                         if(ui.navSkipBtn) ui.navSkipBtn.classList.remove('hidden');
                     }
                 }
             }, 800);
         }
 
-        /* 新規追加: コマンド選択・実行処理 */
         function selectCommand(cmd) {
             if (state.isMoving || state.goalMode) return;
             state.selectedCommand = cmd;
@@ -1041,44 +1077,55 @@
 
         function handleGoalSpeech(text) {
             const cleanText = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
-            const targetPhrase = state.goalPhraseData.phrase.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+            const targetSentence = state.goalPhraseData.sentences[state.currentGoalStep].toLowerCase().replace(/[^a-z0-9\s]/g, '');
             
-            const turnWord = state.goalPhraseData.turn; 
-            const sideWord = state.goalPhraseData.side; 
-            const neighborWord = state.neighbor.word.toLowerCase();
+            let isSuccess = false;
             
-            let score = 0;
-            if(cleanText.includes("turn")) score++;
-            if(cleanText.includes(turnWord)) score++;
-            if(cleanText.includes("see")) score++;
-            if(cleanText.includes(sideWord)) score++;
-            if(cleanText.includes("by")) score++;
-            if(cleanText.includes(neighborWord)) score++;
+            if (state.currentGoalStep === 0) {
+                // "Turn left/right."
+                if (cleanText.includes("turn") && cleanText.includes(state.goalPhraseData.turn)) isSuccess = true;
+            } else if (state.currentGoalStep === 1) {
+                // "You can see it on your left/right."
+                if (cleanText.includes("see") && cleanText.includes(state.goalPhraseData.side)) isSuccess = true;
+            } else if (state.currentGoalStep === 2) {
+                // "It's by the xxx."
+                const neighborClean = state.goalPhraseData.neighbor.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+                if (cleanText.includes("by") && cleanText.includes(neighborClean)) isSuccess = true;
+            }
 
-            if (score >= 4 || cleanText.includes(targetPhrase)) {
-                ui.goalMicStatus.textContent = "Great Job!! ✨";
+            if (isSuccess || cleanText.includes(targetSentence)) {
+                ui.goalMicStatus.textContent = "Good! 次の文を読んでね";
                 ui.goalMicStatus.className = "text-lg font-bold text-green-500 h-6";
+                state.failCount = 0;
+                ui.skipGoalBtn.classList.add('hidden');
                 
-                const finalDirOffset = state.goalPhraseData.turn === 'left' ? -1 : 1;
-                state.bearRot += finalDirOffset * 90;
-                updateBearVisual();
+                state.currentGoalStep++;
+                
+                if (state.currentGoalStep >= 3) {
+                    ui.goalMicStatus.textContent = "Great Job!! ✨";
+                    const finalDirOffset = state.goalPhraseData.turn === 'left' ? -1 : 1;
+                    state.bearRot += finalDirOffset * 90;
+                    updateBearVisual();
 
-                setTimeout(() => {
-                    ui.goalModal.classList.add('hidden');
-                    ui.goalModal.classList.remove('flex');
-                    
-                    state.goalCount++;
-                    if (state.goalCount === 1) {
-                        showNoteModal();
-                    } else {
-                        start3DMiniGame();
-                    }
-                }, 1000);
+                    setTimeout(() => {
+                        ui.goalModal.classList.add('hidden');
+                        ui.goalModal.classList.remove('flex');
+                        
+                        state.goalCount++;
+                        if (state.goalCount === 1) {
+                            showNoteModal();
+                        } else {
+                            showCharacterSelectModal();
+                        }
+                    }, 1000);
+                } else {
+                    updateGoalModalUI();
+                }
             } else {
                 state.failCount++;
                 ui.goalMicStatus.textContent = `「${text}」と聞こえました。もう一度！`;
                 ui.goalMicStatus.className = "text-sm font-bold text-orange-500 h-6";
-                if(state.failCount >= 1) ui.skipGoalBtn.classList.remove('hidden');
+                if(state.failCount >= 3) ui.skipGoalBtn.classList.remove('hidden');
             }
         }
 
@@ -1108,28 +1155,22 @@
                 if (state.goalCount === 1) {
                     showNoteModal();
                 } else {
-                    start3DMiniGame();
+                    showCharacterSelectModal();
                 }
             });
 
             document.getElementById('btn-close-note').addEventListener('click', () => {
                 document.getElementById('note-modal').classList.add('hidden');
                 document.getElementById('note-modal').classList.remove('flex');
-                start3DMiniGame();
+                showCharacterSelectModal();
             });
-        }
-
-        function showClearModal() {
-            ui.clearModal.classList.remove('hidden');
-            ui.clearModal.classList.add('flex');
-            createConfetti();
         }
 
         function showNoteModal() {
             const container = document.getElementById('note-content-area');
             container.innerHTML = '';
             
-            const phrase = state.goalPhraseData.phrase;
+            const phrase = state.goalPhraseData.sentences.join(' ');
             
             const html = `
                 <div class="mb-10 min-w-max">
@@ -1162,15 +1203,15 @@
         function playGoalPhrase() {
             if (!('speechSynthesis' in window) || !state.goalPhraseData) return;
             window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(state.goalPhraseData.phrase);
+            // 現在のステップの1文だけを再生
+            const text = state.goalPhraseData.sentences[state.currentGoalStep];
+            const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'en-US'; 
             utterance.rate = 0.8;
             window.speechSynthesis.speak(utterance);
         }
 
         function resetGame() {
-            ui.clearModal.classList.add('hidden');
-            ui.clearModal.classList.remove('flex');
             generateMap();
             state.target = null;
             state.neighbor = null;
@@ -1246,8 +1287,6 @@
             }
         }
 
-        // --- 3D ミニゲーム & ガチャ処理 ---
-        
         let scene, camera, renderer, player3D, coins = [], npcs = [];
         let animationId;
         const keys = { w: false, a: false, s: false, d: false, up: false, down: false, left: false, right: false };
@@ -1266,11 +1305,9 @@
 
         function getRandomCoinPosition() {
             const SCALE = 25;
-            // マップの範囲（外側にも少しはみ出るくらいまで出せるようにする）
             const minX = -15, maxX = MAP_SIZE_X * SCALE + 15;
             const minZ = -15, maxZ = MAP_SIZE_Y * SCALE + 15;
             
-            // 建物と重ならない場所をランダムに探す（最大50回試行）
             for(let attempt=0; attempt<50; attempt++) {
                 const rx = minX + Math.random() * (maxX - minX);
                 const rz = minZ + Math.random() * (maxZ - minZ);
@@ -1280,7 +1317,6 @@
                     const bx = b.bx * SCALE;
                     const bz = b.by * SCALE;
                     const dist = Math.sqrt(Math.pow(rx - bx, 2) + Math.pow(rz - bz, 2));
-                    // 建物のサイズ（半径）より少し大きめの距離なら重ならないと判定
                     if (dist < 10) { 
                         isTooClose = true;
                         break;
@@ -1291,7 +1327,6 @@
                     return { x: rx, z: rz };
                 }
             }
-            // 万が一見つからなかった場合は適当な場所に出す
             return { x: Math.random() * (maxX - minX), z: Math.random() * (maxZ - minZ) };
         }
 
@@ -1299,13 +1334,62 @@
             const coinGeo = new THREE.CylinderGeometry(2, 2, 0.5, 16);
             const coinMat = new THREE.MeshStandardMaterial({ color: 0xFFEA00, emissive: 0xFFD700, emissiveIntensity: 0.8, metalness: 0.8, roughness: 0.2 });
             
-            // 新しく作ったランダム座標取得関数を使う
             const pos = getRandomCoinPosition();
             const coin = new THREE.Mesh(coinGeo, coinMat);
             coin.rotation.x = Math.PI / 2;
             coin.position.set(pos.x, 2, pos.z);
             scene.add(coin);
             coins.push(coin);
+        }
+
+        function showCharacterSelectModal() {
+            const modal = document.getElementById('character-select-modal');
+            const container = document.getElementById('character-list-container');
+            const countDisplay = document.getElementById('selected-char-count');
+            
+            selectedCharacterIndices = [];
+            countDisplay.textContent = "0";
+            
+            if (state.gachaCharacters.length === 0) {
+                container.innerHTML = '<p class="text-gray-400 font-bold w-full text-center mt-10">まだ仲間がいないよ。<br>ゲームでコインを集めてガチャを引こう！</p>';
+            } else {
+                container.innerHTML = '';
+                state.gachaCharacters.forEach((char, index) => {
+                    const charDiv = document.createElement('div');
+                    charDiv.className = 'w-24 h-28 bg-white border-4 border-gray-200 rounded-xl flex flex-col items-center justify-center cursor-pointer transition-all shadow-sm';
+                    charDiv.innerHTML = `
+                        <div class="text-5xl mb-1">${char.icon}</div>
+                        <div class="text-xs font-bold text-gray-700">${char.name}</div>
+                        <div class="check-mark hidden absolute top-1 right-1 text-green-500 text-xl drop-shadow"><i class="fas fa-check-circle"></i></div>
+                    `;
+                    charDiv.style.position = 'relative';
+                    
+                    charDiv.onclick = () => {
+                        const idxInSelected = selectedCharacterIndices.indexOf(index);
+                        if (idxInSelected > -1) {
+                            selectedCharacterIndices.splice(idxInSelected, 1);
+                            charDiv.classList.remove('border-green-500', 'bg-green-50', 'scale-105');
+                            charDiv.classList.add('border-gray-200');
+                            charDiv.querySelector('.check-mark').classList.add('hidden');
+                        } else {
+                            if (selectedCharacterIndices.length >= 5) {
+                                showToast("えらべるのは最大5人までだよ！");
+                                return;
+                            }
+                            selectedCharacterIndices.push(index);
+                            charDiv.classList.remove('border-gray-200');
+                            charDiv.classList.add('border-green-500', 'bg-green-50', 'scale-105');
+                            charDiv.querySelector('.check-mark').classList.remove('hidden');
+                        }
+                        countDisplay.textContent = selectedCharacterIndices.length;
+                    };
+                    
+                    container.appendChild(charDiv);
+                });
+            }
+            
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         function init3DScene() {
@@ -1346,18 +1430,15 @@
             scene.add(ground);
 
             const SCALE = 25;
-            const occupied = new Set();
             buildings.forEach(b => {
                 const b3dx = b.bx * SCALE;
                 const b3dz = b.by * SCALE;
-                occupied.add(`${b.bx},${b.by}`);
                 const iconSprite = createEmojiSprite(b.icon, 128);
                 iconSprite.position.set(b3dx, 6, b3dz);
                 iconSprite.scale.set(12, 12, 1);
                 scene.add(iconSprite);
             });
 
-            // プレイヤー配置（ゴールの建物周辺）
             const startX = state.target ? state.target.bx * SCALE : centerX;
             const startZ = state.target ? state.target.by * SCALE : centerZ;
 
@@ -1367,13 +1448,14 @@
             scene.add(player3D);
 
             coins = [];
-            const MAX_COINS = 80; // 初期コイン数を一気に増やす（80個）
+            const MAX_COINS = 80;
             for(let i=0; i<MAX_COINS; i++) {
                 spawnSingleCoin();
             }
 
             npcs = [];
-            state.gachaCharacters.forEach(char => {
+            selectedCharacterIndices.forEach(idx => {
+                const char = state.gachaCharacters[idx];
                 const npc = createEmojiSprite(char.icon, 128);
                 npc.position.set(startX + (Math.random() - 0.5) * 60, 4, startZ + (Math.random() - 0.5) * 60);
                 npc.scale.set(6, 6, 1);
@@ -1428,8 +1510,8 @@
         }
 
         function start3DMiniGame() {
-            ui.clearModal.classList.add('hidden');
-            ui.clearModal.classList.remove('flex');
+            document.getElementById('character-select-modal').classList.add('hidden');
+            document.getElementById('character-select-modal').classList.remove('flex');
             
             state.isGameRunning = true;
             state.gameScore = 0;
@@ -1515,7 +1597,7 @@
         function showGachaModal() {
             const modal = document.getElementById('gacha-modal');
             document.getElementById('result-coins').textContent = state.gameScore;
-            state.gachaCount += Math.floor(state.gameScore / 3);
+            state.gachaCount += Math.floor(state.gameScore / 10);
             showGachaArea();
             modal.style.display = 'flex';
         }
