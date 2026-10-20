@@ -206,15 +206,15 @@
     <div id="app-container">
         
         <!-- 左側サイドバー（操作盤） -->
-        <div id="left-sidebar" class="w-[360px] bg-white border-r-4 border-blue-400 flex flex-col shadow-xl z-30 shrink-0 custom-scrollbar relative">
-            <div class="p-3 bg-gradient-to-b from-blue-50 to-white border-b border-blue-100">
+        <div id="left-sidebar" class="w-[360px] bg-white border-r-4 border-blue-400 flex flex-col shadow-xl z-30 shrink-0 relative">
+            <div class="p-3 bg-gradient-to-b from-blue-50 to-white border-b border-blue-100 shrink-0">
                 <h1 class="text-xl font-black text-blue-700 flex items-center gap-2">
                     <i class="fas fa-map-marked-alt text-blue-500"></i> Town Navigator
                 </h1>
                 <p class="text-xs font-bold text-gray-500 mt-1">クマを案内して目的地へ連れて行こう！</p>
             </div>
 
-            <div class="p-4 flex-grow flex flex-col">
+            <div class="p-4 flex-grow flex flex-col overflow-y-auto custom-scrollbar">
                 <!-- ステータス・案内指示エリア -->
                 <div id="status-box" class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-center animate-pulse flex items-center justify-center gap-3">
                     <div class="text-4xl">👆</div>
@@ -223,7 +223,7 @@
 
                 <!-- 目的地設定後の情報エリア -->
                 <div id="target-info" class="hidden flex-col">
-                    <div class="bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center mb-3 relative overflow-hidden">
+                    <div class="bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center mb-3 relative overflow-hidden shrink-0">
                         <div class="absolute -right-2 -top-2 text-4xl opacity-10">🎯</div>
                         <p class="text-xs font-bold text-gray-500 mb-1">目的地</p>
                         <div class="text-4xl my-1" id="target-icon">🏥</div>
@@ -270,18 +270,18 @@
                         </ul>
                     </div>
                 </div>
+            </div>
 
-                <!-- 音声認識マイクエリア -->
-                <div class="mt-4 mb-2 text-center flex flex-col items-center">
-                    <div id="selected-command-display" class="text-[13px] font-bold text-blue-600 mb-2 h-5">上のリストからフレーズを選んでね</div>
-                    <button id="main-mic-btn" class="w-16 h-16 bg-blue-500 rounded-full text-white text-2xl shadow-lg hover:bg-blue-600 transition-colors mx-auto flex items-center justify-center disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
-                        <i class="fas fa-microphone"></i>
-                    </button>
-                    <p id="mic-status" class="text-xs font-bold text-gray-500 mt-2 h-4">マイクを押して案内する</p>
-                    <button id="nav-skip-btn" class="hidden mt-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-3 rounded text-xs shadow-sm transition-colors">
-                        スキップして進む
-                    </button>
-                </div>
+            <!-- 音声認識マイクエリア (下部に固定) -->
+            <div class="p-3 border-t-2 border-blue-100 bg-blue-50 text-center flex flex-col items-center shrink-0">
+                <div id="selected-command-display" class="text-[13px] font-bold text-blue-600 mb-2 h-5">上のリストからフレーズを選んでね</div>
+                <button id="main-mic-btn" class="w-16 h-16 bg-blue-500 rounded-full text-white text-2xl shadow-lg hover:bg-blue-600 transition-colors mx-auto flex items-center justify-center disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
+                    <i class="fas fa-microphone"></i>
+                </button>
+                <p id="mic-status" class="text-xs font-bold text-gray-500 mt-2 h-4">マイクを押して案内する</p>
+                <button id="nav-skip-btn" class="hidden mt-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-3 rounded text-xs shadow-sm transition-colors">
+                    スキップして進む
+                </button>
             </div>
         </div>
 
@@ -390,6 +390,32 @@
             <button onclick="closeGachaAndReset()" id="btn-close-gacha" class="w-full mt-4 py-3 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg transition-colors shadow-md">
                 次の目的地へ行く
             </button>
+        </div>
+    </div>
+
+    <!-- 3Dゲームコンテナ -->
+    <div id="game-3d-container">
+        <!-- Three.js Canvas goes here -->
+        <div id="game-ui">
+            <div class="flex justify-between w-full font-bold text-white text-2xl" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+                <div class="bg-blue-600 bg-opacity-70 px-4 py-2 rounded-full">
+                    残り時間: <span id="game-timer">20</span>秒
+                </div>
+                <div class="bg-yellow-500 bg-opacity-70 px-4 py-2 rounded-full">
+                    コイン: <span id="game-score">0</span>
+                </div>
+            </div>
+            <div class="text-center text-white font-bold text-xl mt-4 bg-black bg-opacity-50 inline-block px-4 py-1 rounded mx-auto" style="pointer-events: auto;">
+                WASD か 矢印キー でクッマーニ(🐻)を動かそう！
+            </div>
+            
+            <!-- モバイル用コントロール -->
+            <div id="d-pad" class="sm:hidden">
+                <div class="d-btn d-up" id="btn-up"><i class="fas fa-caret-up"></i></div>
+                <div class="d-btn d-down" id="btn-down"><i class="fas fa-caret-down"></i></div>
+                <div class="d-btn d-left" id="btn-left"><i class="fas fa-caret-left"></i></div>
+                <div class="d-btn d-right" id="btn-right"><i class="fas fa-caret-right"></i></div>
+            </div>
         </div>
     </div>
 
@@ -1238,34 +1264,48 @@
             return new THREE.Sprite(material);
         }
 
+        function getRandomCoinPosition() {
+            const SCALE = 25;
+            // マップの範囲（外側にも少しはみ出るくらいまで出せるようにする）
+            const minX = -15, maxX = MAP_SIZE_X * SCALE + 15;
+            const minZ = -15, maxZ = MAP_SIZE_Y * SCALE + 15;
+            
+            // 建物と重ならない場所をランダムに探す（最大50回試行）
+            for(let attempt=0; attempt<50; attempt++) {
+                const rx = minX + Math.random() * (maxX - minX);
+                const rz = minZ + Math.random() * (maxZ - minZ);
+                
+                let isTooClose = false;
+                for(let b of buildings) {
+                    const bx = b.bx * SCALE;
+                    const bz = b.by * SCALE;
+                    const dist = Math.sqrt(Math.pow(rx - bx, 2) + Math.pow(rz - bz, 2));
+                    // 建物のサイズ（半径）より少し大きめの距離なら重ならないと判定
+                    if (dist < 10) { 
+                        isTooClose = true;
+                        break;
+                    }
+                }
+                
+                if (!isTooClose) {
+                    return { x: rx, z: rz };
+                }
+            }
+            // 万が一見つからなかった場合は適当な場所に出す
+            return { x: Math.random() * (maxX - minX), z: Math.random() * (maxZ - minZ) };
+        }
+
         function spawnSingleCoin() {
             const coinGeo = new THREE.CylinderGeometry(2, 2, 0.5, 16);
             const coinMat = new THREE.MeshStandardMaterial({ color: 0xFFEA00, emissive: 0xFFD700, emissiveIntensity: 0.8, metalness: 0.8, roughness: 0.2 });
             
-            const occupied = new Set();
-            buildings.forEach(b => { occupied.add(`${b.bx},${b.by}`); });
-            
-            let possibleSpaces = [];
-            buildings.forEach(b => {
-                const dirs = [[1,0], [-1,0], [0,1], [0,-1]];
-                dirs.forEach(d => {
-                    const nx = b.bx + d[0];
-                    const ny = b.by + d[1];
-                    if (nx >= 0 && nx < MAP_SIZE_X && ny >= 0 && ny < MAP_SIZE_Y && !occupied.has(`${nx},${ny}`)) {
-                        possibleSpaces.push({x: nx, y: ny});
-                    }
-                });
-            });
-            
-            if (possibleSpaces.length > 0) {
-                const pos = possibleSpaces[Math.floor(Math.random() * possibleSpaces.length)];
-                const SCALE = 25;
-                const coin = new THREE.Mesh(coinGeo, coinMat);
-                coin.rotation.x = Math.PI / 2;
-                coin.position.set(pos.x * SCALE, 2, pos.y * SCALE);
-                scene.add(coin);
-                coins.push(coin);
-            }
+            // 新しく作ったランダム座標取得関数を使う
+            const pos = getRandomCoinPosition();
+            const coin = new THREE.Mesh(coinGeo, coinMat);
+            coin.rotation.x = Math.PI / 2;
+            coin.position.set(pos.x, 2, pos.z);
+            scene.add(coin);
+            coins.push(coin);
         }
 
         function init3DScene() {
@@ -1327,25 +1367,9 @@
             scene.add(player3D);
 
             coins = [];
-            const emptySpaces = [];
-            for(let x=0; x<=MAP_SIZE_X; x++){
-                for(let y=0; y<=MAP_SIZE_Y; y++){
-                    if(!occupied.has(`${x},${y}`)) emptySpaces.push({x,y});
-                }
-            }
-            
-            const coinGeo = new THREE.CylinderGeometry(2, 2, 0.5, 16);
-            const coinMat = new THREE.MeshStandardMaterial({ color: 0xFFEA00, emissive: 0xFFD700, emissiveIntensity: 0.8, metalness: 0.8, roughness: 0.2 });
-            
-            emptySpaces.sort(() => 0.5 - Math.random());
-            const numCoins = Math.min(30, emptySpaces.length);
-            for(let i=0; i<numCoins; i++) {
-                const pos = emptySpaces[i];
-                const coin = new THREE.Mesh(coinGeo, coinMat);
-                coin.rotation.x = Math.PI / 2;
-                coin.position.set(pos.x * SCALE, 2, pos.y * SCALE);
-                scene.add(coin);
-                coins.push(coin);
+            const MAX_COINS = 80; // 初期コイン数を一気に増やす（80個）
+            for(let i=0; i<MAX_COINS; i++) {
+                spawnSingleCoin();
             }
 
             npcs = [];
