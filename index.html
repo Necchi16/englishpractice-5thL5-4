@@ -1,0 +1,1369 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Town Navigator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Andika&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js (3Dミニゲーム用) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Kosugi Maru', sans-serif;
+            background-color: #f0fdf4;
+            margin: 0;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        #app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        /* カスタムスクロールバー */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        /* 街のマップのベーススタイル (広げたサイズ) */
+        #city-map {
+            width: 900px;
+            height: 900px;
+            background-color: #dcfce7;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            border: 12px solid white;
+            border-radius: 24px;
+            position: relative;
+            transform-origin: center center;
+        }
+
+        /* レスポンシブ用縮小 */
+        @media (max-width: 1024px) {
+            #city-map { transform: scale(0.75); }
+        }
+        @media (max-width: 768px) {
+            #app-container { flex-direction: column; }
+            #left-sidebar { width: 100% !important; height: 35%; border-right: none; border-bottom: 4px solid #3b82f6; overflow-y: auto; }
+            #main-area { height: 65%; }
+            #city-map { transform: scale(0.5); }
+        }
+        @media (max-width: 480px) {
+            #city-map { transform: scale(0.35); }
+        }
+
+        /* 道路・交差点のスタイル */
+        .road-v, .road-h {
+            position: absolute;
+            background-color: #9ca3af;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .road-v { width: 40px; height: calc(100% - 20px); top: 10px; }
+        .road-h { height: 40px; width: calc(100% - 20px); left: 10px; }
+        .road-line-v { width: 4px; height: 100%; border-left: 4px dashed rgba(255,255,255,0.7); }
+        .road-line-h { height: 4px; width: 100%; border-top: 4px dashed rgba(255,255,255,0.7); }
+        
+        .intersection {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background-color: #9ca3af;
+            z-index: 5;
+        }
+
+        /* 建物のカード */
+        .building-card {
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 3px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            z-index: 10;
+        }
+        .building-card:hover {
+            transform: translateY(-4px) scale(1.05);
+            border-color: #93c5fd;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+
+        /* クマのアニメーションと配置 */
+        #bear {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            transition: left 0.6s ease-in-out, top 0.6s ease-in-out, transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+        }
+
+        /* マイクボタンアニメーション */
+        .mic-listening {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+            background-color: #ef4444 !important;
+            transform: scale(0.95);
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(239, 68, 68, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* トースト通知 */
+        .toast {
+            position: fixed; top: 40px; left: 50%; transform: translateX(-50%);
+            background-color: rgba(31, 41, 55, 0.9); color: white;
+            padding: 12px 24px; border-radius: 9999px; font-weight: bold;
+            z-index: 200; transition: opacity 0.3s; pointer-events: none; opacity: 0;
+        }
+
+        @keyframes bounce-subtle {
+            0%, 100% { transform: translateY(-5%); }
+            50% { transform: translateY(0); }
+        }
+        .animate-bounce-subtle { animation: bounce-subtle 2s infinite; }
+
+        /* 3Dゲーム領域 */
+        #game-3d-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #87CEEB; display: none; z-index: 300;
+        }
+        
+        #game-ui {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; padding: 20px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        /* モバイル用D-Pad */
+        #d-pad {
+            position: absolute; bottom: 30px; right: 30px;
+            width: 150px; height: 150px;
+            background: rgba(255,255,255,0.2); border-radius: 50%;
+            pointer-events: auto; display: flex; justify-content: center; align-items: center;
+        }
+        .d-btn {
+            position: absolute; width: 50px; height: 50px; background: rgba(0,0,0,0.3);
+            border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center;
+            font-size: 24px; user-select: none;
+        }
+        .d-up { top: 0; } .d-down { bottom: 0; } .d-left { left: 0; } .d-right { right: 0; }
+
+        /* ガチャモーダル用 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); display: none;
+            justify-content: center; align-items: center; z-index: 400;
+            backdrop-filter: blur(3px);
+        }
+        .modal-content {
+            background-color: white; padding: 30px; border-radius: 20px;
+            text-align: center; max-width: 90%; width: 550px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideDown 0.3s ease-out;
+        }
+        @keyframes slideDown {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        
+        <!-- 左側サイドバー（操作盤） -->
+        <div id="left-sidebar" class="w-[360px] bg-white border-r-4 border-blue-400 flex flex-col shadow-xl z-30 shrink-0 custom-scrollbar relative">
+            <div class="p-3 bg-gradient-to-b from-blue-50 to-white border-b border-blue-100">
+                <h1 class="text-xl font-black text-blue-700 flex items-center gap-2">
+                    <i class="fas fa-map-marked-alt text-blue-500"></i> Town Navigator
+                </h1>
+                <p class="text-xs font-bold text-gray-500 mt-1">クマを案内して目的地へ連れて行こう！</p>
+            </div>
+
+            <div class="p-4 flex-grow flex flex-col">
+                <!-- ステータス・案内指示エリア -->
+                <div id="status-box" class="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 text-center animate-pulse flex items-center justify-center gap-3">
+                    <div class="text-4xl">👆</div>
+                    <p class="text-sm font-bold text-blue-800 text-left">右のマップから<br>行きたい建物を<br>クリックしてね！</p>
+                </div>
+
+                <!-- 目的地設定後の情報エリア -->
+                <div id="target-info" class="hidden flex-col">
+                    <div class="bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center mb-3 relative overflow-hidden">
+                        <div class="absolute -right-2 -top-2 text-4xl opacity-10">🎯</div>
+                        <p class="text-xs font-bold text-gray-500 mb-1">目的地</p>
+                        <div class="text-4xl my-1" id="target-icon">🏥</div>
+                        <p class="text-lg font-black text-red-600 mb-1" id="target-name">hospital</p>
+                        <div class="bg-white/60 rounded-lg p-1.5 inline-block">
+                            <p class="text-[10px] font-bold text-gray-500">となりの建物:</p>
+                            <p class="text-xs font-bold text-green-700" id="neighbor-name">school</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 flex-grow">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="font-bold text-yellow-800 text-sm"><i class="fas fa-comment-dots"></i> 言ってみよう！</p>
+                        </div>
+                        <ul class="text-[13px] font-bold text-gray-700 space-y-1.5">
+                            <li class="flex items-center justify-between">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 1 block.</span></div>
+                                <button onclick="playHint('Go straight for 1 block.')" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            </li>
+                            <li class="flex items-center justify-between">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 2 blocks.</span></div>
+                                <button onclick="playHint('Go straight for 2 blocks.')" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            </li>
+                            <li class="flex items-center justify-between">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 3 blocks.</span></div>
+                                <button onclick="playHint('Go straight for 3 blocks.')" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            </li>
+                            <li class="flex items-center justify-between">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 4 blocks.</span></div>
+                                <button onclick="playHint('Go straight for 4 blocks.')" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            </li>
+                            <li class="flex items-center justify-between mt-1 pt-1 border-t border-yellow-200">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-undo transform -scale-x-100"></i></span><span>Turn left.</span></div>
+                                <button onclick="playHint('Turn left.')" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            </li>
+                            <li class="flex items-center justify-between">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-redo"></i></span><span>Turn right.</span></div>
+                                <button onclick="playHint('Turn right.')" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- 音声認識マイクエリア -->
+                <div class="mt-4 mb-2 text-center">
+                    <button id="main-mic-btn" class="w-16 h-16 bg-blue-500 rounded-full text-white text-2xl shadow-lg hover:bg-blue-600 transition-colors mx-auto flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                    <p id="mic-status" class="text-xs font-bold text-gray-500 mt-2 h-4">マイクを押して案内する</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右側メインエリア（マップ） -->
+        <div id="main-area" class="flex-grow flex items-center justify-center relative bg-green-50 overflow-hidden">
+            <div id="city-map">
+                <!-- JavaScriptで道路、建物、クマを生成 -->
+            </div>
+            
+            <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-white/80 backdrop-blur px-4 py-2 rounded-full shadow-sm border border-gray-200 text-sm font-bold text-gray-500 hidden md:block">
+                <i class="fas fa-info-circle"></i> 音声でクマを目的地まで案内しよう！
+            </div>
+        </div>
+    </div>
+
+    <!-- ゴール直前モーダル (最後のフレーズ用) -->
+    <div id="goal-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-xl w-11/12 text-center border-4 border-yellow-400 transform transition-all">
+            <div class="w-20 h-20 mx-auto mb-2 animate-bounce-subtle">
+                <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+                    <circle cx="50" cy="55" r="42" fill="#A0522D" />
+                    <ellipse cx="50" cy="20" rx="22" ry="16" fill="#D2B48C" />
+                    <ellipse cx="50" cy="12" rx="8" ry="5" fill="#000" />
+                    <circle cx="34" cy="40" r="5" fill="#000" />
+                    <circle cx="66" cy="40" r="5" fill="#000" />
+                </svg>
+            </div>
+            <h2 class="text-3xl font-black text-yellow-500 mb-2">目的地はすぐそこ！</h2>
+            <p class="text-lg font-bold text-gray-600 mb-6">最後の案内をしてあげよう！</p>
+            
+            <div class="bg-blue-50 p-6 rounded-2xl border-2 border-blue-200 mb-6 relative">
+                <button onclick="playGoalPhrase()" class="absolute top-4 right-4 text-blue-500 hover:text-blue-700 bg-white rounded-full w-10 h-10 flex items-center justify-center shadow-sm">
+                    <i class="fas fa-volume-up text-lg"></i>
+                </button>
+                <p id="goal-phrase-display" class="text-2xl font-bold text-blue-800 leading-relaxed font-['Andika'] tracking-wide"></p>
+            </div>
+
+            <button id="goal-mic-btn" class="w-20 h-20 bg-red-500 rounded-full text-white text-3xl flex items-center justify-center mx-auto shadow-lg hover:bg-red-600 transition-colors mb-3">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <p id="goal-mic-status" class="text-sm font-bold text-gray-500 h-6">マイクを押して読む</p>
+            
+            <button id="skip-goal-btn" class="mt-4 text-gray-400 hover:text-gray-600 font-bold text-sm underline hidden">うまく読めない時はスキップ</button>
+        </div>
+    </div>
+
+    <!-- クリアモーダル -->
+    <div id="clear-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-10 rounded-3xl shadow-2xl max-w-md w-11/12 text-center border-4 border-green-400">
+            <div class="text-7xl mb-4" id="clear-emoji">🎉🎊✨</div>
+            <h2 class="text-4xl font-black text-green-500 mb-3">Goal!!</h2>
+            <p class="text-xl font-bold text-gray-700 mb-8">案内に大成功！<br>目的地に着いたよ！</p>
+            <button onclick="start3DMiniGame()" class="w-full py-4 bg-yellow-500 text-white rounded-xl font-bold text-xl hover:bg-yellow-600 shadow-lg transition-all active:transform active:scale-95 mb-3">
+                <i class="fas fa-coins"></i> コイン集めゲームであそぶ
+            </button>
+            <button onclick="resetGame()" class="w-full py-3 bg-blue-500 text-white rounded-xl font-bold text-lg hover:bg-blue-600 shadow transition-all active:transform active:scale-95">
+                すぐに次の目的地へ行く
+            </button>
+        </div>
+    </div>
+
+    <!-- 3Dゲームコンテナ -->
+    <div id="game-3d-container">
+        <div id="game-ui">
+            <div class="flex justify-between w-full font-bold text-white text-2xl" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.8);">
+                <div class="bg-blue-600 bg-opacity-70 px-4 py-2 rounded-full">
+                    残り時間: <span id="game-timer">20</span>秒
+                </div>
+                <div class="bg-yellow-500 bg-opacity-70 px-4 py-2 rounded-full">
+                    コイン: <span id="game-score">0</span>
+                </div>
+            </div>
+            <div class="text-center text-white font-bold text-xl mt-4 bg-black bg-opacity-50 inline-block px-4 py-1 rounded mx-auto" style="pointer-events: auto;">
+                WASD か 矢印キー でキャラクターを動かそう！
+            </div>
+            
+            <!-- モバイル用コントロール -->
+            <div id="d-pad" class="sm:hidden">
+                <div class="d-btn d-up" id="btn-up"><i class="fas fa-caret-up"></i></div>
+                <div class="d-btn d-down" id="btn-down"><i class="fas fa-caret-down"></i></div>
+                <div class="d-btn d-left" id="btn-left"><i class="fas fa-caret-left"></i></div>
+                <div class="d-btn d-right" id="btn-right"><i class="fas fa-caret-right"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ガチャモーダル -->
+    <div id="gacha-modal" class="modal-overlay">
+        <div class="modal-content border-4 border-yellow-400 bg-gradient-to-b from-white to-yellow-50">
+            <h2 class="text-3xl font-bold mb-2 text-yellow-600">おつかれさま！</h2>
+            <p class="text-lg font-bold text-gray-700 mb-4"><span id="result-coins" class="text-2xl text-yellow-500">0</span> 枚のコインを集めたよ！</p>
+            
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 mb-4">
+                <p class="font-bold text-blue-800">コイン3枚でガチャが1回引けるよ！</p>
+                <p class="text-lg font-bold mt-1">のこりガチャ回数: <span id="gacha-count-display" class="text-2xl text-blue-600">0</span> 回</p>
+            </div>
+            
+            <!-- ガチャエリア -->
+            <div id="gacha-area" class="my-6">
+                <div id="gacha-box" class="text-8xl cursor-pointer animate-bounce-subtle select-none" onclick="drawGachaMultiple(1)">🎁</div>
+                <p class="text-sm text-gray-500 mt-2 font-bold mb-4">タップして1回ガチャを引くか、下から選ぼう！</p>
+                
+                <div class="flex flex-wrap justify-center gap-2 mt-4">
+                    <button onclick="drawGachaMultiple(1)" id="btn-gacha-1" class="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold shadow transition-colors w-24">1回</button>
+                    <button onclick="drawGachaMultiple(10)" id="btn-gacha-10" class="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold shadow transition-colors w-24">10回</button>
+                    <button onclick="drawGachaMultiple(100)" id="btn-gacha-100" class="px-4 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold shadow transition-colors w-24">100回</button>
+                </div>
+            </div>
+
+            <!-- ガチャ結果エリア -->
+            <div id="gacha-result" class="hidden my-6">
+                <div class="text-2xl font-bold text-blue-600 mb-2">新しいなかまをゲット！</div>
+                <div id="gacha-result-list" class="flex flex-wrap justify-center gap-3 max-h-64 overflow-y-auto custom-scrollbar p-2">
+                </div>
+                <p class="text-sm text-gray-600 mt-4">次のミニゲームからコイン集めを手伝ってくれるよ！</p>
+                <button onclick="showGachaArea()" id="btn-draw-again" class="mt-6 w-full py-3 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-lg transition-colors shadow-md hidden">
+                    もう一回ガチャを引く
+                </button>
+            </div>
+            
+            <button onclick="closeGachaAndReset()" id="btn-close-gacha" class="w-full mt-4 py-3 bg-gray-400 hover:bg-gray-500 text-white font-bold rounded-lg transition-colors shadow-md">
+                次の目的地へ行く
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- データ定義 ---
+        const vocabularyList = [
+            { word: "house", icon: "🏠" },
+            { word: "hospital", icon: "🏥" },
+            { word: "school", icon: "🏫" },
+            { word: "police station", icon: "🚓" },
+            { word: "fire station", icon: "🚒" },
+            { word: "post office", icon: "📮" },
+            { word: "library", icon: "📚" },
+            { word: "museum", icon: "🏛️" },
+            { word: "park", icon: "🏞️" },
+            { word: "station", icon: "🚉" },
+            { word: "restaurant", icon: "🍽️" },
+            { word: "supermarket", icon: "🛒" },
+            { word: "convenience store", icon: "🏪" },
+            { word: "amusement park", icon: "🎡" },
+            { word: "zoo", icon: "🐘" },
+            { word: "castle", icon: "🏯" }
+        ];
+
+        const gachaCharactersList = [
+            { name: "勇者", icon: "⚔️" },
+            { name: "魔法使い", icon: "🧙‍♀️" },
+            { name: "ドラゴン", icon: "🐉" },
+            { name: "エルフ", icon: "🧝‍♀️" },
+            { name: "ペガサス", icon: "🦄" },
+            { name: "騎士", icon: "🛡️" },
+            { name: "妖精", icon: "🧚" }
+        ];
+
+        // 街の構成 (6x6 blocks = 7x7 intersections)
+        const MAP_SIZE = 6; 
+        const INTERSECTION_INTERVAL = 140;
+        const OFFSET = 30; // 道路中心の初期オフセット
+        const ROAD_WIDTH = 40;
+        
+        let buildings = []; // 配置された建物のリスト
+        
+        // 状態管理
+        let state = {
+            target: null,
+            neighbor: null,
+            goalPhraseData: null,
+            goalMode: false,
+            bearNx: 3, // 初期位置: 中央
+            bearNy: 6, // 初期位置: 下
+            bearRot: 0, // 角度(deg), 0が北(上)
+            isMoving: false,
+            recognition: null,
+            failCount: 0,
+            
+            // ゲーム・ガチャ用
+            isGameRunning: false,
+            gameScore: 0,
+            gachaCount: 0,
+            gachaCharacters: []
+        };
+
+        const ui = {
+            map: document.getElementById('city-map'),
+            statusBox: document.getElementById('status-box'),
+            targetInfo: document.getElementById('target-info'),
+            targetName: document.getElementById('target-name'),
+            targetIcon: document.getElementById('target-icon'),
+            neighborName: document.getElementById('neighbor-name'),
+            mainMicBtn: document.getElementById('main-mic-btn'),
+            micStatus: document.getElementById('mic-status'),
+            goalModal: document.getElementById('goal-modal'),
+            goalPhraseDisplay: document.getElementById('goal-phrase-display'),
+            goalMicBtn: document.getElementById('goal-mic-btn'),
+            goalMicStatus: document.getElementById('goal-mic-status'),
+            clearModal: document.getElementById('clear-modal'),
+            skipGoalBtn: document.getElementById('skip-goal-btn')
+        };
+
+        let bearEl = null;
+
+        // --- 初期化処理 ---
+        function initApp() {
+            generateMap();
+            setupSpeechRecognition();
+            setupEventListeners();
+            ui.mainMicBtn.disabled = true;
+        }
+
+        function generateMap() {
+            ui.map.innerHTML = '';
+            buildings = [];
+            
+            // 道路の描画
+            for(let i=0; i<=MAP_SIZE; i++) {
+                // 縦の道
+                const roadV = document.createElement('div');
+                roadV.className = 'road-v';
+                roadV.style.left = `${i * INTERSECTION_INTERVAL + OFFSET - ROAD_WIDTH/2}px`;
+                roadV.innerHTML = '<div class="road-line-v"></div>';
+                ui.map.appendChild(roadV);
+
+                // 横の道
+                const roadH = document.createElement('div');
+                roadH.className = 'road-h';
+                roadH.style.top = `${i * INTERSECTION_INTERVAL + OFFSET - ROAD_WIDTH/2}px`;
+                roadH.innerHTML = '<div class="road-line-h"></div>';
+                ui.map.appendChild(roadH);
+            }
+
+            // 交差点の描画
+            for(let x=0; x<=MAP_SIZE; x++) {
+                for(let y=0; y<=MAP_SIZE; y++) {
+                    const inter = document.createElement('div');
+                    inter.className = 'intersection';
+                    inter.style.left = `${x * INTERSECTION_INTERVAL + OFFSET - ROAD_WIDTH/2}px`;
+                    inter.style.top = `${y * INTERSECTION_INTERVAL + OFFSET - ROAD_WIDTH/2}px`;
+                    ui.map.appendChild(inter);
+                }
+            }
+
+            // 36個の建物を配置 (6x6 blocks)
+            let vocabCopy = [];
+            while(vocabCopy.length < MAP_SIZE * MAP_SIZE) {
+                vocabCopy = vocabCopy.concat([...vocabularyList].sort(() => 0.5 - Math.random()));
+            }
+            let count = 0;
+            
+            for(let bx=0; bx<MAP_SIZE; bx++) {
+                for(let by=0; by<MAP_SIZE; by++) {
+                    const v = vocabCopy[count++];
+                    const bData = {
+                        bx: bx, by: by,
+                        word: v.word, icon: v.icon,
+                        el: null
+                    };
+                    
+                    const el = document.createElement('div');
+                    el.className = 'building-card';
+                    el.style.left = `${bx * INTERSECTION_INTERVAL + OFFSET + ROAD_WIDTH/2 + 5}px`;
+                    el.style.top = `${by * INTERSECTION_INTERVAL + OFFSET + ROAD_WIDTH/2 + 5}px`;
+                    
+                    el.innerHTML = `
+                        <div class="text-4xl mb-1">${v.icon}</div>
+                        <div class="font-bold text-gray-700 text-[11px] text-center px-1 leading-tight">${v.word}</div>
+                    `;
+                    
+                    el.onclick = () => selectTarget(bData);
+                    
+                    bData.el = el;
+                    buildings.push(bData);
+                    ui.map.appendChild(el);
+                }
+            }
+
+            // クマの配置 (SVGアイコンを使用)
+            bearEl = document.createElement('div');
+            bearEl.id = 'bear';
+            bearEl.innerHTML = `
+                <svg viewBox="0 0 100 100" class="w-full h-full drop-shadow-md">
+                    <!-- 体(頭) -->
+                    <circle cx="50" cy="55" r="42" fill="#A0522D" />
+                    <!-- 鼻周り (前方向き) -->
+                    <ellipse cx="50" cy="20" rx="22" ry="16" fill="#D2B48C" />
+                    <!-- 鼻 -->
+                    <ellipse cx="50" cy="12" rx="8" ry="5" fill="#000" />
+                    <!-- 目 -->
+                    <circle cx="34" cy="40" r="5" fill="#000" />
+                    <circle cx="66" cy="40" r="5" fill="#000" />
+                </svg>
+            `;
+            ui.map.appendChild(bearEl);
+            
+            resetBear();
+        }
+
+        function resetBear() {
+            state.bearNx = 3; // 中央
+            state.bearNy = 6; // 一番下
+            state.bearRot = 0; // 北向き
+            updateBearVisual();
+        }
+
+        function updateBearVisual() {
+            const px = state.bearNx * INTERSECTION_INTERVAL + OFFSET;
+            const py = state.bearNy * INTERSECTION_INTERVAL + OFFSET;
+            bearEl.style.left = `${px}px`;
+            bearEl.style.top = `${py}px`;
+            // クマのSVGは初期状態で上(0度)を向いている
+            bearEl.style.transform = `translate(-50%, -50%) rotate(${state.bearRot}deg)`;
+        }
+
+        function selectTarget(bData) {
+            if(state.isMoving || state.goalMode) return;
+
+            buildings.forEach(b => {
+                b.el.classList.remove('border-red-500', 'bg-red-50', 'border-green-400', 'bg-green-50');
+                b.el.classList.add('border-gray-200', 'bg-white');
+            });
+
+            state.target = bData;
+            
+            const neighbors = buildings.filter(b => {
+                if (b === bData) return false;
+                const dx = Math.abs(b.bx - bData.bx);
+                const dy = Math.abs(b.by - bData.by);
+                return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+            });
+            state.neighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+
+            bData.el.classList.remove('border-gray-200', 'bg-white');
+            bData.el.classList.add('border-red-500', 'bg-red-50');
+            state.neighbor.el.classList.remove('border-gray-200', 'bg-white');
+            state.neighbor.el.classList.add('border-green-400', 'bg-green-50');
+
+            ui.statusBox.classList.add('hidden');
+            ui.targetInfo.classList.remove('hidden');
+            ui.targetInfo.classList.add('flex');
+            
+            ui.targetName.textContent = bData.word;
+            ui.targetIcon.textContent = bData.icon;
+            ui.neighborName.textContent = state.neighbor.word;
+            
+            ui.mainMicBtn.disabled = false;
+            
+            resetBear();
+            state.goalMode = false;
+            ui.micStatus.textContent = "マイクを押して案内する";
+            ui.micStatus.className = "text-sm font-bold text-gray-500 mt-3 h-5";
+
+            showToast("目的地がセットされたよ！案内を始めよう！");
+        }
+
+        function rotateBear(direction) {
+            // direction: 1 (right), -1 (left)
+            state.bearRot += direction * 90;
+            updateBearVisual();
+            setTimeout(checkGoalCondition, 450);
+        }
+
+        async function moveBearAnimated(blocks) {
+            state.isMoving = true;
+            ui.mainMicBtn.disabled = true;
+            
+            const dir = ((state.bearRot / 90) % 4 + 4) % 4;
+            let successBlocks = 0;
+
+            for(let i=0; i<blocks; i++) {
+                let nextNx = state.bearNx;
+                let nextNy = state.bearNy;
+                
+                if (dir === 0) nextNy -= 1;      // North
+                else if (dir === 1) nextNx += 1; // East
+                else if (dir === 2) nextNy += 1; // South
+                else if (dir === 3) nextNx -= 1; // West
+                
+                if (nextNx >= 0 && nextNx <= MAP_SIZE && nextNy >= 0 && nextNy <= MAP_SIZE) {
+                    state.bearNx = nextNx;
+                    state.bearNy = nextNy;
+                    updateBearVisual();
+                    successBlocks++;
+                    await sleep(600);
+                } else {
+                    showToast("そっちには行けないよ！");
+                    break;
+                }
+            }
+            
+            state.isMoving = false;
+            ui.mainMicBtn.disabled = false;
+            
+            if(successBlocks > 0) {
+                checkGoalCondition();
+            }
+        }
+
+        function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+        function checkGoalCondition() {
+            if (!state.target || state.goalMode) return;
+
+            const bx = state.target.bx;
+            const by = state.target.by;
+            
+            const isAtCorner = 
+                (state.bearNx === bx && state.bearNy === by) ||
+                (state.bearNx === bx+1 && state.bearNy === by) ||
+                (state.bearNx === bx && state.bearNy === by+1) ||
+                (state.bearNx === bx+1 && state.bearNy === by+1);
+                
+            if (!isAtCorner) return;
+
+            const phraseData = generateGoalPhrase();
+            if (phraseData) triggerGoalMode(phraseData);
+        }
+
+        function generateGoalPhrase() {
+            const bx = state.target.bx;
+            const by = state.target.by;
+            const currentDir = ((state.bearRot / 90) % 4 + 4) % 4; // 0:N, 1:E, 2:S, 3:W
+            
+            const turns = [
+                { turn: 'left', dirOffset: 3 },
+                { turn: 'right', dirOffset: 1 }
+            ];
+            
+            for (let t of turns) {
+                const newDir = (currentDir + t.dirOffset) % 4;
+                let isValid = false;
+                let side = '';
+                
+                if (newDir === 0) {
+                    if (state.bearNy === by + 1) {
+                        if (state.bearNx === bx) { isValid = true; side = 'right'; }
+                        if (state.bearNx === bx + 1) { isValid = true; side = 'left'; }
+                    }
+                } else if (newDir === 1) {
+                    if (state.bearNx === bx) {
+                        if (state.bearNy === by) { isValid = true; side = 'right'; }
+                        if (state.bearNy === by + 1) { isValid = true; side = 'left'; }
+                    }
+                } else if (newDir === 2) {
+                    if (state.bearNy === by) {
+                        if (state.bearNx === bx) { isValid = true; side = 'left'; }
+                        if (state.bearNx === bx + 1) { isValid = true; side = 'right'; }
+                    }
+                } else if (newDir === 3) {
+                    if (state.bearNx === bx + 1) {
+                        if (state.bearNy === by) { isValid = true; side = 'left'; }
+                        if (state.bearNy === by + 1) { isValid = true; side = 'right'; }
+                    }
+                }
+                
+                if (isValid) {
+                    const neighborStr = state.neighbor.word;
+                    const phrase = `Turn ${t.turn}. You can see it on your ${side}. It's by the ${neighborStr}.`;
+                    return { phrase: phrase, turn: t.turn, side: side };
+                }
+            }
+            return null;
+        }
+
+        function triggerGoalMode(phraseData) {
+            state.goalMode = true;
+            state.goalPhraseData = phraseData;
+            state.failCount = 0;
+            ui.skipGoalBtn.classList.add('hidden');
+            
+            ui.goalPhraseDisplay.innerHTML = highlightPhrase(phraseData.phrase);
+            ui.goalModal.classList.remove('hidden');
+            ui.goalModal.classList.add('flex');
+            
+            if(state.recognition) { try{ state.recognition.stop(); }catch(e){} }
+            ui.mainMicBtn.classList.remove('mic-listening');
+            ui.micStatus.textContent = "目的地周辺に到着！";
+        }
+
+        function highlightPhrase(text) {
+            return text
+                .replace(/Turn (left|right)/i, '<span class="text-red-500">Turn $1</span>')
+                .replace(/on your (left|right)/i, 'on your <span class="text-red-500">$1</span>')
+                .replace(/by the ([\w\s]+)\./i, 'by the <span class="text-green-600">$1</span>.');
+        }
+
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                showToast("お使いのブラウザは音声認識に対応していません。");
+                return;
+            }
+
+            state.recognition = new SpeechRecognition();
+            state.recognition.lang = 'en-US';
+            state.recognition.interimResults = false;
+            state.recognition.maxAlternatives = 1;
+
+            state.recognition.onstart = function() {
+                if (state.goalMode) {
+                    ui.goalMicBtn.classList.add('mic-listening');
+                    ui.goalMicStatus.textContent = "聞いています...";
+                } else {
+                    ui.mainMicBtn.classList.add('mic-listening');
+                    ui.micStatus.textContent = "聞いています...";
+                    ui.micStatus.className = "text-sm font-bold text-blue-600 mt-3 h-5 animate-pulse";
+                }
+            };
+
+            state.recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                if (state.goalMode) {
+                    ui.goalMicBtn.classList.remove('mic-listening');
+                    handleGoalSpeech(transcript);
+                } else {
+                    ui.mainMicBtn.classList.remove('mic-listening');
+                    handleNavigationSpeech(transcript);
+                }
+            };
+
+            state.recognition.onerror = function(event) {
+                const btn = state.goalMode ? ui.goalMicBtn : ui.mainMicBtn;
+                const status = state.goalMode ? ui.goalMicStatus : ui.micStatus;
+                
+                btn.classList.remove('mic-listening');
+                if (event.error === 'not-allowed') {
+                    status.textContent = "マイクが許可されていません";
+                    status.className = "text-sm font-bold text-red-500 mt-3 h-5";
+                } else {
+                    status.textContent = "聞き取れませんでした";
+                    status.className = "text-sm font-bold text-orange-500 mt-3 h-5";
+                }
+            };
+
+            state.recognition.onend = function() {
+                ui.mainMicBtn.classList.remove('mic-listening');
+                ui.goalMicBtn.classList.remove('mic-listening');
+                if(!state.goalMode && ui.micStatus.textContent === "聞いています...") {
+                    ui.micStatus.textContent = "マイクを押して案内する";
+                    ui.micStatus.className = "text-sm font-bold text-gray-500 mt-3 h-5";
+                }
+                if(state.goalMode && ui.goalMicStatus.textContent === "聞いています...") {
+                    ui.goalMicStatus.textContent = "マイクを押して読む";
+                }
+            };
+        }
+
+        function toggleMic(isGoal) {
+            if (!state.recognition || state.isMoving) return;
+            try {
+                if ((!isGoal && ui.mainMicBtn.classList.contains('mic-listening')) || 
+                    (isGoal && ui.goalMicBtn.classList.contains('mic-listening'))) {
+                    state.recognition.stop();
+                } else {
+                    state.recognition.start();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function handleNavigationSpeech(text) {
+            const cleanText = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+            ui.micStatus.textContent = `「${text}」`;
+            ui.micStatus.className = "text-sm font-bold text-gray-700 mt-3 h-5";
+
+            setTimeout(() => {
+                if (cleanText.includes("turn left")) {
+                    rotateBear(-1);
+                    ui.micStatus.textContent = "Excellent! ✨";
+                    ui.micStatus.classList.add('text-green-500');
+                } else if (cleanText.includes("turn right")) {
+                    rotateBear(1);
+                    ui.micStatus.textContent = "Excellent! ✨";
+                    ui.micStatus.classList.add('text-green-500');
+                } else if (cleanText.includes("go straight")) {
+                    let blocks = 0;
+                    if (cleanText.includes("1") || cleanText.includes("one")) blocks = 1;
+                    if (cleanText.includes("2") || cleanText.includes("two") || cleanText.includes("to") || cleanText.includes("too")) blocks = 2;
+                    if (cleanText.includes("3") || cleanText.includes("three")) blocks = 3;
+                    if (cleanText.includes("4") || cleanText.includes("four") || cleanText.includes("for")) blocks = 4;
+                    if (cleanText.includes("5") || cleanText.includes("five")) blocks = 5;
+                    
+                    if (blocks >= 1) {
+                        moveBearAnimated(blocks);
+                        ui.micStatus.textContent = "Excellent! ✨";
+                        ui.micStatus.classList.add('text-green-500');
+                    } else {
+                        ui.micStatus.textContent = "ブロック数を入れてね(例: 2 blocks)";
+                        ui.micStatus.className = "text-sm font-bold text-orange-500 mt-3 h-5";
+                    }
+                } else {
+                    ui.micStatus.textContent = "もう一度言ってね！";
+                    ui.micStatus.className = "text-sm font-bold text-orange-500 mt-3 h-5";
+                }
+            }, 800);
+        }
+
+        function handleGoalSpeech(text) {
+            const cleanText = text.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+            const targetPhrase = state.goalPhraseData.phrase.toLowerCase().replace(/[^a-z0-9\s]/g, '');
+            
+            const turnWord = state.goalPhraseData.turn; 
+            const sideWord = state.goalPhraseData.side; 
+            const neighborWord = state.neighbor.word.toLowerCase();
+            
+            let score = 0;
+            if(cleanText.includes("turn")) score++;
+            if(cleanText.includes(turnWord)) score++;
+            if(cleanText.includes("see")) score++;
+            if(cleanText.includes(sideWord)) score++;
+            if(cleanText.includes("by")) score++;
+            if(cleanText.includes(neighborWord)) score++;
+
+            if (score >= 4 || cleanText.includes(targetPhrase)) {
+                ui.goalMicStatus.textContent = "Great Job!! ✨";
+                ui.goalMicStatus.className = "text-lg font-bold text-green-500 h-6";
+                
+                const finalDirOffset = state.goalPhraseData.turn === 'left' ? -1 : 1;
+                state.bearRot += finalDirOffset * 90;
+                updateBearVisual();
+
+                setTimeout(() => {
+                    ui.goalModal.classList.add('hidden');
+                    ui.goalModal.classList.remove('flex');
+                    ui.clearModal.classList.remove('hidden');
+                    ui.clearModal.classList.add('flex');
+                    createConfetti();
+                }, 1000);
+            } else {
+                state.failCount++;
+                ui.goalMicStatus.textContent = `「${text}」と聞こえました。もう一度！`;
+                ui.goalMicStatus.className = "text-sm font-bold text-orange-500 h-6";
+                if(state.failCount >= 3) ui.skipGoalBtn.classList.remove('hidden');
+            }
+        }
+
+        function setupEventListeners() {
+            ui.mainMicBtn.addEventListener('click', () => toggleMic(false));
+            ui.goalMicBtn.addEventListener('click', () => toggleMic(true));
+            
+            ui.skipGoalBtn.addEventListener('click', () => {
+                ui.goalModal.classList.add('hidden');
+                ui.goalModal.classList.remove('flex');
+                
+                const finalDirOffset = state.goalPhraseData.turn === 'left' ? -1 : 1;
+                state.bearRot += finalDirOffset * 90;
+                updateBearVisual();
+
+                ui.clearModal.classList.remove('hidden');
+                ui.clearModal.classList.add('flex');
+            });
+        }
+
+        function playHint(text) {
+            if (!('speechSynthesis' in window)) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US'; 
+            utterance.rate = 0.8;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function playGoalPhrase() {
+            if (!('speechSynthesis' in window) || !state.goalPhraseData) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(state.goalPhraseData.phrase);
+            utterance.lang = 'en-US'; 
+            utterance.rate = 0.8;
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function resetGame() {
+            ui.clearModal.classList.add('hidden');
+            ui.clearModal.classList.remove('flex');
+            generateMap();
+            state.target = null;
+            state.neighbor = null;
+            state.goalMode = false;
+            ui.mainMicBtn.disabled = true;
+            
+            ui.targetInfo.classList.add('hidden');
+            ui.targetInfo.classList.remove('flex');
+            ui.statusBox.classList.remove('hidden');
+            
+            ui.micStatus.textContent = "マイクを押して案内する";
+            ui.micStatus.className = "text-sm font-bold text-gray-500 mt-3 h-5";
+            ui.goalMicStatus.textContent = "マイクを押して読む";
+            ui.goalMicStatus.className = "text-sm font-bold text-gray-500 h-6";
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            requestAnimationFrame(() => requestAnimationFrame(() => toast.style.opacity = '1'));
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function createConfetti() {
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+            const container = document.body;
+            
+            for (let i = 0; i < 40; i++) {
+                const particle = document.createElement('div');
+                particle.style.position = 'fixed';
+                particle.style.left = `${window.innerWidth / 2}px`;
+                particle.style.top = `${window.innerHeight / 2}px`;
+                particle.style.width = '10px';
+                particle.style.height = '10px';
+                particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                particle.style.pointerEvents = 'none';
+                particle.style.zIndex = '1000';
+                
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = 50 + Math.random() * 150;
+                const tx = Math.cos(angle) * velocity;
+                const ty = Math.sin(angle) * velocity - 100;
+                
+                particle.animate([
+                    { transform: 'translate(0, 0) scale(1) rotate(0deg)', opacity: 1 },
+                    { transform: `translate(${tx}px, ${ty}px) scale(0) rotate(${Math.random()*720}deg)`, opacity: 0 }
+                ], {
+                    duration: 800 + Math.random() * 600,
+                    easing: 'cubic-bezier(0, .9, .57, 1)'
+                });
+                
+                container.appendChild(particle);
+                setTimeout(() => particle.remove(), 1500);
+            }
+        }
+
+        // --- 3D ミニゲーム & ガチャ処理 ---
+        
+        let scene, camera, renderer, player3D, coins = [], npcs = [];
+        let animationId;
+        const keys = { w: false, a: false, s: false, d: false, up: false, down: false, left: false, right: false };
+
+        function createEmojiSprite(emoji, size=64) {
+            const canvas = document.createElement('canvas');
+            canvas.width = size; canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            ctx.font = `${size*0.8}px Arial`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(emoji, size/2, size/2);
+            const texture = new THREE.CanvasTexture(canvas);
+            const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+            return new THREE.Sprite(material);
+        }
+
+        function spawnSingleCoin() {
+            const coinGeo = new THREE.CylinderGeometry(2, 2, 0.5, 16);
+            const coinMat = new THREE.MeshStandardMaterial({ color: 0xFFEA00, emissive: 0xFFD700, emissiveIntensity: 0.8, metalness: 0.8, roughness: 0.2 });
+            
+            const occupied = new Set();
+            buildings.forEach(b => { occupied.add(`${b.bx},${b.by}`); });
+            
+            let possibleSpaces = [];
+            buildings.forEach(b => {
+                const dirs = [[1,0], [-1,0], [0,1], [0,-1]];
+                dirs.forEach(d => {
+                    const nx = b.bx + d[0];
+                    const ny = b.by + d[1];
+                    if (nx >= 0 && nx < MAP_SIZE && ny >= 0 && ny < MAP_SIZE && !occupied.has(`${nx},${ny}`)) {
+                        possibleSpaces.push({x: nx, y: ny});
+                    }
+                });
+            });
+            
+            if (possibleSpaces.length > 0) {
+                const pos = possibleSpaces[Math.floor(Math.random() * possibleSpaces.length)];
+                const SCALE = 25;
+                const coin = new THREE.Mesh(coinGeo, coinMat);
+                coin.rotation.x = Math.PI / 2;
+                coin.position.set(pos.x * SCALE, 2, pos.y * SCALE);
+                scene.add(coin);
+                coins.push(coin);
+            }
+        }
+
+        function init3DScene() {
+            const container = document.getElementById('game-3d-container');
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 20, 200);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 30, 40);
+            camera.lookAt(0, 0, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            const oldCanvas = container.querySelector('canvas');
+            if(oldCanvas) container.removeChild(oldCanvas);
+            container.insertBefore(renderer.domElement, document.getElementById('game-ui'));
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            const centerX = (MAP_SIZE / 2) * 25;
+            const centerZ = (MAP_SIZE / 2) * 25;
+
+            const gridHelper = new THREE.GridHelper(500, 50, 0x000000, 0x000000);
+            gridHelper.material.opacity = 0.2; gridHelper.material.transparent = true;
+            gridHelper.position.set(centerX, 0, centerZ);
+            scene.add(gridHelper);
+            
+            const groundGeo = new THREE.PlaneGeometry(500, 500);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x7CFC00 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.set(centerX, 0, centerZ);
+            scene.add(ground);
+
+            const SCALE = 25;
+            const occupied = new Set();
+            buildings.forEach(b => {
+                const b3dx = b.bx * SCALE;
+                const b3dz = b.by * SCALE;
+                occupied.add(`${b.bx},${b.by}`);
+                const iconSprite = createEmojiSprite(b.icon, 128);
+                iconSprite.position.set(b3dx, 6, b3dz);
+                iconSprite.scale.set(12, 12, 1);
+                scene.add(iconSprite);
+            });
+
+            // プレイヤー配置（ゴールの建物周辺）
+            const startX = state.target ? state.target.bx * SCALE : centerX;
+            const startZ = state.target ? state.target.by * SCALE : centerZ;
+
+            player3D = createEmojiSprite("🐻", 128);
+            player3D.position.set(startX, 4, startZ);
+            player3D.scale.set(8, 8, 1);
+            scene.add(player3D);
+
+            coins = [];
+            const emptySpaces = [];
+            for(let x=0; x<=MAP_SIZE; x++){
+                for(let y=0; y<=MAP_SIZE; y++){
+                    if(!occupied.has(`${x},${y}`)) emptySpaces.push({x,y});
+                }
+            }
+            
+            const coinGeo = new THREE.CylinderGeometry(2, 2, 0.5, 16);
+            const coinMat = new THREE.MeshStandardMaterial({ color: 0xFFEA00, emissive: 0xFFD700, emissiveIntensity: 0.8, metalness: 0.8, roughness: 0.2 });
+            
+            emptySpaces.sort(() => 0.5 - Math.random());
+            const numCoins = Math.min(30, emptySpaces.length);
+            for(let i=0; i<numCoins; i++) {
+                const pos = emptySpaces[i];
+                const coin = new THREE.Mesh(coinGeo, coinMat);
+                coin.rotation.x = Math.PI / 2;
+                coin.position.set(pos.x * SCALE, 2, pos.y * SCALE);
+                scene.add(coin);
+                coins.push(coin);
+            }
+
+            npcs = [];
+            state.gachaCharacters.forEach(char => {
+                const npc = createEmojiSprite(char.icon, 128);
+                npc.position.set(startX + (Math.random() - 0.5) * 60, 4, startZ + (Math.random() - 0.5) * 60);
+                npc.scale.set(6, 6, 1);
+                scene.add(npc);
+                npcs.push(npc);
+            });
+
+            window.addEventListener('keydown', onKeyDown);
+            window.addEventListener('keyup', onKeyUp);
+            setupMobileControls();
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onKeyDown(e) {
+            switch(e.key.toLowerCase()) {
+                case 'w': case 'arrowup': keys.up = true; break;
+                case 's': case 'arrowdown': keys.down = true; break;
+                case 'a': case 'arrowleft': keys.left = true; break;
+                case 'd': case 'arrowright': keys.right = true; break;
+            }
+        }
+        function onKeyUp(e) {
+            switch(e.key.toLowerCase()) {
+                case 'w': case 'arrowup': keys.up = false; break;
+                case 's': case 'arrowdown': keys.down = false; break;
+                case 'a': case 'arrowleft': keys.left = false; break;
+                case 'd': case 'arrowright': keys.right = false; break;
+            }
+        }
+
+        function setupMobileControls() {
+            const addBtnEvent = (id, key) => {
+                const btn = document.getElementById(id);
+                if(!btn) return;
+                btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key] = true; }, {passive: false});
+                btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key] = false; }, {passive: false});
+                btn.addEventListener('mousedown', () => keys[key] = true);
+                btn.addEventListener('mouseup', () => keys[key] = false);
+                btn.addEventListener('mouseleave', () => keys[key] = false);
+            };
+            addBtnEvent('btn-up', 'up');
+            addBtnEvent('btn-down', 'down');
+            addBtnEvent('btn-left', 'left');
+            addBtnEvent('btn-right', 'right');
+        }
+
+        function onWindowResize() {
+            if(!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function start3DMiniGame() {
+            ui.clearModal.classList.add('hidden');
+            ui.clearModal.classList.remove('flex');
+            
+            state.isGameRunning = true;
+            state.gameScore = 0;
+            document.getElementById('game-score').textContent = "0";
+            document.getElementById('game-timer').textContent = "20";
+            document.getElementById('game-3d-container').style.display = 'block';
+            
+            init3DScene();
+            
+            let timeLeft = 20;
+            const timerInterval = setInterval(() => {
+                if(!state.isGameRunning) { clearInterval(timerInterval); return; }
+                timeLeft--;
+                document.getElementById('game-timer').textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    end3DMiniGame();
+                }
+            }, 1000);
+
+            function animate() {
+                if (!state.isGameRunning) return;
+                animationId = requestAnimationFrame(animate);
+
+                const speed = 0.8;
+                if (keys.up) player3D.position.z -= speed;
+                if (keys.down) player3D.position.z += speed;
+                if (keys.left) player3D.position.x -= speed;
+                if (keys.right) player3D.position.x += speed;
+
+                camera.position.x = player3D.position.x;
+                camera.position.z = player3D.position.z + 40;
+                camera.lookAt(player3D.position.x, player3D.position.y, player3D.position.z);
+
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    const coin = coins[i];
+                    coin.rotation.z += 0.05;
+                    if (player3D.position.distanceTo(coin.position) < 6) {
+                        scene.remove(coin);
+                        coins.splice(i, 1);
+                        state.gameScore++;
+                        document.getElementById('game-score').textContent = state.gameScore;
+                        spawnSingleCoin();
+                    }
+                }
+
+                npcs.forEach(npc => {
+                    let closestCoin = null;
+                    let minDist = Infinity;
+                    coins.forEach(coin => {
+                        const dist = npc.position.distanceTo(coin.position);
+                        if (dist < minDist) { minDist = dist; closestCoin = coin; }
+                    });
+                    if (closestCoin) {
+                        const dir = new THREE.Vector3().subVectors(closestCoin.position, npc.position).normalize();
+                        npc.position.add(dir.multiplyScalar(0.4)); 
+                        if (minDist < 5) {
+                            scene.remove(closestCoin);
+                            const index = coins.indexOf(closestCoin);
+                            if(index > -1) coins.splice(index, 1);
+                            state.gameScore++;
+                            document.getElementById('game-score').textContent = state.gameScore;
+                            spawnSingleCoin();
+                        }
+                    }
+                });
+                renderer.render(scene, camera);
+            }
+            animate();
+        }
+
+        function end3DMiniGame() {
+            state.isGameRunning = false;
+            cancelAnimationFrame(animationId);
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('keyup', onKeyUp);
+            document.getElementById('game-3d-container').style.display = 'none';
+            if (renderer) renderer.dispose();
+            
+            showGachaModal();
+        }
+
+        function showGachaModal() {
+            const modal = document.getElementById('gacha-modal');
+            document.getElementById('result-coins').textContent = state.gameScore;
+            state.gachaCount += Math.floor(state.gameScore / 3);
+            showGachaArea();
+            modal.style.display = 'flex';
+        }
+
+        function showGachaArea() {
+            document.getElementById('gacha-count-display').textContent = state.gachaCount;
+            if (state.gachaCount > 0) {
+                document.getElementById('gacha-area').style.display = 'block';
+                document.getElementById('gacha-box').style.animation = 'bounce-subtle 1s infinite';
+                document.getElementById('gacha-result').style.display = 'none';
+                document.getElementById('btn-close-gacha').style.display = 'none';
+
+                ['1', '10', '100'].forEach(num => {
+                    const btn = document.getElementById(`btn-gacha-${num}`);
+                    if(state.gachaCount < parseInt(num)) {
+                        btn.disabled = true;
+                        btn.classList.add('opacity-50', 'cursor-not-allowed');
+                        btn.classList.remove('hover:bg-blue-600');
+                    } else {
+                        btn.disabled = false;
+                        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        btn.classList.add('hover:bg-blue-600');
+                    }
+                });
+            } else {
+                document.getElementById('gacha-area').style.display = 'none';
+                document.getElementById('gacha-result').style.display = 'none';
+                document.getElementById('btn-close-gacha').style.display = 'block';
+                document.getElementById('btn-close-gacha').textContent = "次の目的地へ行く";
+            }
+        }
+
+        function drawGachaMultiple(times) {
+            if (state.gachaCount <= 0) return;
+            const actualTimes = Math.min(times, state.gachaCount);
+            state.gachaCount -= actualTimes;
+            document.getElementById('gacha-count-display').textContent = state.gachaCount;
+            
+            const box = document.getElementById('gacha-box');
+            box.style.animation = 'none';
+            
+            const results = {};
+            for (let i = 0; i < actualTimes; i++) {
+                const randomChar = gachaCharactersList[Math.floor(Math.random() * gachaCharactersList.length)];
+                state.gachaCharacters.push(randomChar);
+                if (!results[randomChar.name]) results[randomChar.name] = { char: randomChar, count: 0 };
+                results[randomChar.name].count++;
+            }
+            
+            document.getElementById('gacha-area').style.display = 'none';
+            const resultDiv = document.getElementById('gacha-result');
+            const resultList = document.getElementById('gacha-result-list');
+            resultList.innerHTML = '';
+
+            if (actualTimes === 1) {
+                const charName = Object.keys(results)[0];
+                const char = results[charName].char;
+                resultList.innerHTML = `
+                    <div class="flex flex-col items-center">
+                        <div class="text-8xl filter drop-shadow-lg mb-2">${char.icon}</div>
+                        <div class="text-xl font-bold text-gray-800 border-b-2 border-yellow-400 px-4">${char.name}</div>
+                    </div>
+                `;
+            } else {
+                Object.values(results).forEach(res => {
+                    resultList.innerHTML += `
+                        <div class="flex flex-col items-center p-3 border-2 border-yellow-200 rounded-xl bg-yellow-50 min-w-[90px] shadow-sm">
+                            <div class="text-5xl filter drop-shadow-md mb-2">${res.char.icon}</div>
+                            <div class="text-sm font-bold text-gray-800">${res.char.name}</div>
+                            <div class="text-lg font-black text-blue-600 mt-1">x${res.count}</div>
+                        </div>
+                    `;
+                });
+            }
+
+            resultDiv.style.display = 'block';
+            if (state.gachaCount > 0) {
+                document.getElementById('btn-draw-again').style.display = 'block';
+                document.getElementById('btn-close-gacha').style.display = 'block';
+                document.getElementById('btn-close-gacha').textContent = "ガチャをやめる";
+            } else {
+                document.getElementById('btn-draw-again').style.display = 'none';
+                document.getElementById('btn-close-gacha').style.display = 'block';
+                document.getElementById('btn-close-gacha').textContent = "次の目的地へ行く";
+            }
+            createConfetti();
+        }
+
+        function closeGachaAndReset() {
+            document.getElementById('gacha-modal').style.display = 'none';
+            resetGame();
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
