@@ -35,14 +35,10 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
 
-        /* 街のマップのベーススタイル (広げたサイズ) */
+        /* 街のマップのベーススタイル (少し小さく調整) */
         #city-map {
-            width: 760px;
-            height: 620px;
-            background-color: #dcfce7;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            border: 12px solid white;
-            border-radius: 24px;
+            width: 780px;
+            height: 540px;
             position: relative;
             transform-origin: center center;
             transition: transform 0.2s ease-out;
@@ -76,11 +72,11 @@
             z-index: 5;
         }
 
-        /* 建物のカード */
+        /* 建物のカード (サイズを調整) */
         .building-card {
             position: absolute;
-            width: 100px;
-            height: 100px;
+            width: 76px;
+            height: 76px;
             background-color: white;
             border-radius: 12px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -222,7 +218,7 @@
                 </div>
 
                 <!-- 目的地設定後の情報エリア -->
-                <div id="target-info" class="hidden flex-col">
+                <div id="target-info" class="hidden flex-col h-full overflow-hidden">
                     <div class="bg-red-50 border-2 border-red-200 rounded-xl p-3 text-center mb-3 relative overflow-hidden shrink-0">
                         <div class="absolute -right-2 -top-2 text-4xl opacity-10">🎯</div>
                         <p class="text-xs font-bold text-gray-500 mb-1">目的地</p>
@@ -234,30 +230,23 @@
                         </div>
                     </div>
 
-                    <div class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 flex-grow">
-                        <div class="flex items-center justify-between mb-2">
+                    <!-- 通常の案内コマンド -->
+                    <div id="nav-command-area" class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-3 flex-grow flex flex-col overflow-y-auto custom-scrollbar">
+                        <div class="flex items-center justify-between mb-2 shrink-0">
                             <p class="font-bold text-yellow-800 text-sm"><i class="fas fa-comment-dots"></i> 言ってみよう！</p>
                         </div>
-                        <ul id="command-list" class="text-[13px] font-bold text-gray-700 space-y-1.5">
-                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for 1 block.')">
-                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 1 block.</span></div>
-                                <button onclick="playHint('Go straight for 1 block.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                        <ul id="command-list" class="text-[13px] font-bold text-gray-700 space-y-1.5 pb-2">
+                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for one block.')">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for one block.</span></div>
+                                <button onclick="playHint('Go straight for one block.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
                             </li>
-                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for 2 blocks.')">
-                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 2 blocks.</span></div>
-                                <button onclick="playHint('Go straight for 2 blocks.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for two blocks.')">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for two blocks.</span></div>
+                                <button onclick="playHint('Go straight for two blocks.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
                             </li>
-                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for 3 blocks.')">
-                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 3 blocks.</span></div>
-                                <button onclick="playHint('Go straight for 3 blocks.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
-                            </li>
-                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for 4 blocks.')">
-                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 4 blocks.</span></div>
-                                <button onclick="playHint('Go straight for 4 blocks.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
-                            </li>
-                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for 5 blocks.')">
-                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for 5 blocks.</span></div>
-                                <button onclick="playHint('Go straight for 5 blocks.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
+                            <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors" onclick="selectCommand('Go straight for three blocks.')">
+                                <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-arrow-up"></i></span><span>Go straight for three blocks.</span></div>
+                                <button onclick="playHint('Go straight for three blocks.'); event.stopPropagation();" class="text-blue-500 hover:text-blue-700 bg-white rounded-full w-6 h-6 flex items-center justify-center shadow-sm"><i class="fas fa-volume-up text-[10px]"></i></button>
                             </li>
                             <li class="flex items-center justify-between cursor-pointer hover:bg-yellow-100 p-1 rounded transition-colors mt-1 pt-1 border-t border-yellow-200" onclick="selectCommand('Turn left.')">
                                 <div class="flex items-center gap-2"><span class="text-blue-500"><i class="fas fa-undo transform -scale-x-100"></i></span><span>Turn left.</span></div>
@@ -269,6 +258,15 @@
                             </li>
                         </ul>
                     </div>
+
+                    <!-- ゴール到着時のフレーズ -->
+                    <div id="goal-phrase-area" class="hidden bg-green-50 border-2 border-green-300 rounded-xl p-3 flex-grow flex-col justify-center">
+                        <h3 class="font-bold text-green-800 mb-3 text-center text-sm"><i class="fas fa-flag-checkered"></i> 到着！言ってみよう！</h3>
+                        <div id="goal-phrase-display" class="flex flex-col text-left mb-4 px-2"></div>
+                        <button onclick="playGoalPhrase()" class="mt-2 text-green-600 hover:text-green-800 bg-white rounded-full w-10 h-10 flex items-center justify-center mx-auto shadow border border-green-200 transition-colors">
+                            <i class="fas fa-volume-up text-lg"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -278,8 +276,8 @@
                 <button id="main-mic-btn" class="w-16 h-16 bg-blue-500 rounded-full text-white text-2xl shadow-lg hover:bg-blue-600 transition-colors mx-auto flex items-center justify-center disabled:bg-gray-400 disabled:hover:bg-gray-400 disabled:shadow-none disabled:cursor-not-allowed">
                     <i class="fas fa-microphone"></i>
                 </button>
-                <p id="mic-status" class="text-xs font-bold text-gray-500 mt-2 h-4">マイクを押して案内する</p>
-                <button id="nav-skip-btn" class="hidden mt-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-3 rounded text-xs shadow-sm transition-colors">
+                <p id="mic-status" class="text-xs font-bold text-gray-500 mt-2 h-4">マイクを押して発話する</p>
+                <button id="skip-btn" class="hidden mt-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1 px-3 rounded text-xs shadow-sm transition-colors">
                     スキップして進む
                 </button>
             </div>
@@ -289,30 +287,6 @@
         <div id="main-area" class="flex-grow flex items-center justify-center relative bg-green-50 overflow-hidden">
             <div id="city-map">
                 <!-- JavaScriptで道路、建物、クマを生成 -->
-            </div>
-        </div>
-    </div>
-
-    <!-- ゴール到着時の音声入力モーダル -->
-    <div id="goal-modal" class="fixed inset-0 hidden items-center justify-center backdrop-blur-sm" style="z-index: 200; background-color: rgba(0, 0, 0, 0.6);">
-        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl border-4 border-red-400 max-w-lg w-[90%] text-center">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4">到着！英語で言ってみよう！</h2>
-            <div class="bg-gray-50 border-2 border-gray-200 rounded-xl p-4 mb-4 relative">
-                <!-- 1文ずつ表示するエリア -->
-                <div id="goal-phrase-display" class="flex flex-col text-left mb-2"></div>
-                <button onclick="playGoalPhrase()" class="mt-3 text-blue-500 hover:text-blue-700 bg-blue-100 rounded-full w-10 h-10 flex items-center justify-center mx-auto shadow transition-colors">
-                    <i class="fas fa-volume-up text-lg"></i>
-                </button>
-            </div>
-            
-            <div class="mt-6">
-                <button id="goal-mic-btn" class="w-20 h-20 bg-red-500 rounded-full text-white text-3xl shadow-lg hover:bg-red-600 transition-colors mx-auto flex items-center justify-center">
-                    <i class="fas fa-microphone"></i>
-                </button>
-                <p id="goal-mic-status" class="text-sm font-bold text-gray-500 mt-3 h-6">マイクを押して読む</p>
-                <button id="skip-goal-btn" class="hidden mt-3 w-full py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold rounded-lg transition-colors">
-                    スキップして進む
-                </button>
             </div>
         </div>
     </div>
@@ -356,7 +330,7 @@
             <p class="text-lg font-bold text-gray-700 mb-4"><span id="result-coins" class="text-2xl text-yellow-500">0</span> 枚のコインを集めたよ！</p>
             
             <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-3 mb-4">
-                <p class="font-bold text-blue-800">コイン10枚でガチャが1回引けるよ！</p>
+                <p class="font-bold text-blue-800">コイン30枚でガチャが1回引けるよ！</p>
                 <p class="text-lg font-bold mt-1">のこりガチャ回数: <span id="gacha-count-display" class="text-2xl text-blue-600">0</span> 回</p>
             </div>
             
@@ -446,10 +420,10 @@
             { name: "妖精", icon: "🧚" }
         ];
 
-        // 街の構成 (横5x縦4 blocks)
-        const MAP_SIZE_X = 5; 
+        // 街の構成 (横6x縦4 blocks)
+        const MAP_SIZE_X = 6; 
         const MAP_SIZE_Y = 4; 
-        const INTERSECTION_INTERVAL = 140;
+        const INTERSECTION_INTERVAL = 120;
         const OFFSET = 30; // 道路中心の初期オフセット
         const ROAD_WIDTH = 40;
         
@@ -462,7 +436,7 @@
             goalPhraseData: null,
             currentGoalStep: 0,
             goalMode: false,
-            bearNx: 2, // 初期位置: 中央付近
+            bearNx: 3, // 初期位置: 中央付近
             bearNy: 4, // 初期位置: 下
             bearRot: 0, // 角度(deg), 0が北(上)
             isMoving: false,
@@ -490,15 +464,13 @@
             targetName: document.getElementById('target-name'),
             targetIcon: document.getElementById('target-icon'),
             neighborName: document.getElementById('neighbor-name'),
+            navCommandArea: document.getElementById('nav-command-area'),
+            goalPhraseArea: document.getElementById('goal-phrase-area'),
+            goalPhraseDisplay: document.getElementById('goal-phrase-display'),
             mainMicBtn: document.getElementById('main-mic-btn'),
             micStatus: document.getElementById('mic-status'),
             selectedCommandDisplay: document.getElementById('selected-command-display'),
-            navSkipBtn: document.getElementById('nav-skip-btn'),
-            goalModal: document.getElementById('goal-modal'),
-            goalPhraseDisplay: document.getElementById('goal-phrase-display'),
-            goalMicBtn: document.getElementById('goal-mic-btn'),
-            goalMicStatus: document.getElementById('goal-mic-status'),
-            skipGoalBtn: document.getElementById('skip-goal-btn')
+            skipBtn: document.getElementById('skip-btn')
         };
 
         let bearEl = null;
@@ -527,8 +499,8 @@
             if (!mainArea || !cityMap) return;
 
             // 枠線（ボーダー）なども考慮してベースサイズを少し大きめに見積もる
-            const mapBaseWidth = 800; 
-            const mapBaseHeight = 670; 
+            const mapBaseWidth = 840; 
+            const mapBaseHeight = 580; 
             // 画面端からの余白（パディング）
             const padding = 40; 
             
@@ -582,19 +554,53 @@
             }
 
             // 建物を配置 (5x4 blocks)
-            let vocabCopy = [];
-            while(vocabCopy.length < MAP_SIZE_X * MAP_SIZE_Y) {
-                vocabCopy = vocabCopy.concat([...vocabularyList].sort(() => 0.5 - Math.random()));
+            let vocabCopy = [...vocabularyList];
+            // Fisher-Yates シャッフルで確実にランダム化
+            for (let i = vocabCopy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [vocabCopy[i], vocabCopy[j]] = [vocabCopy[j], vocabCopy[i]];
             }
+            
+            // 建物が足りない場合のために複製しながら必要な数を確保
+            while(vocabCopy.length < MAP_SIZE_X * MAP_SIZE_Y) {
+                const moreVocab = [...vocabularyList];
+                for (let i = moreVocab.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [moreVocab[i], moreVocab[j]] = [moreVocab[j], moreVocab[i]];
+                }
+                vocabCopy = vocabCopy.concat(moreVocab);
+            }
+            
             let count = 0;
             
             for(let bx=0; bx<MAP_SIZE_X; bx++) {
                 for(let by=0; by<MAP_SIZE_Y; by++) {
+                    // スタート地点から北に直進して行ける場所 (bx=2 と bx=3 のすべてのby) を木にする
+                    // これにより、必ず「Turn」の指示が必要になります
+                    if (bx === 2 || bx === 3) {
+                        const bData = {
+                            bx: bx, by: by,
+                            word: "tree", icon: "🌳",
+                            el: null,
+                            isTree: true
+                        };
+                        const treeEl = document.createElement('div');
+                        treeEl.className = 'building-card pointer-events-none border-transparent bg-transparent shadow-none';
+                        treeEl.style.left = `${bx * INTERSECTION_INTERVAL + OFFSET + ROAD_WIDTH/2 + 5}px`;
+                        treeEl.style.top = `${by * INTERSECTION_INTERVAL + OFFSET + ROAD_WIDTH/2 + 5}px`;
+                        treeEl.innerHTML = `<div class="text-6xl drop-shadow-md">🌳</div>`;
+                        bData.el = treeEl;
+                        buildings.push(bData);
+                        ui.map.appendChild(treeEl);
+                        continue;
+                    }
+
                     const v = vocabCopy[count++];
                     const bData = {
                         bx: bx, by: by,
                         word: v.word, icon: v.icon,
-                        el: null
+                        el: null,
+                        isTree: false
                     };
                     
                     const el = document.createElement('div');
@@ -644,7 +650,7 @@
         }
 
         function resetBear() {
-            state.bearNx = 2; // 中央付近
+            state.bearNx = 3; // 中央付近
             state.bearNy = 4; // 一番下
             state.bearRot = 0; // 北向き
             updateBearVisual();
@@ -662,26 +668,28 @@
         function selectTarget(bData) {
             if(state.isMoving || state.goalMode) return;
 
-            // スタート地点(nx=2, ny=4)の真横(目の前)にある建物は選択不可にする
-            if (state.bearNx === 2 && state.bearNy === 4 && bData.by === 3 && (bData.bx === 1 || bData.bx === 2)) {
-                showToast("近すぎるよ！もう少し遠い建物を選んでね。");
-                return;
-            }
+            if (bData.isTree) return;
 
             buildings.forEach(b => {
-                b.el.classList.remove('border-red-500', 'bg-red-50', 'border-green-400', 'bg-green-50');
-                b.el.classList.add('border-gray-200', 'bg-white');
+                if (!b.isTree) {
+                    b.el.classList.remove('border-red-500', 'bg-red-50', 'border-green-400', 'bg-green-50');
+                    b.el.classList.add('border-gray-200', 'bg-white');
+                }
             });
 
             state.target = bData;
             
             const neighbors = buildings.filter(b => {
-                if (b === bData) return false;
+                if (b === bData || b.isTree) return false;
                 const dx = Math.abs(b.bx - bData.bx);
                 const dy = Math.abs(b.by - bData.by);
-                return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+                // 左右（横方向）のみ
+                return (dx === 1 && dy === 0);
             });
-            state.neighbor = neighbors[Math.floor(Math.random() * neighbors.length)];
+            // 左右に建物がない場合は適当な建物をフォールバックで選択
+            state.neighbor = neighbors.length > 0 
+                ? neighbors[Math.floor(Math.random() * neighbors.length)]
+                : buildings.find(b => b !== bData && !b.isTree);
 
             bData.el.classList.remove('border-gray-200', 'bg-white');
             bData.el.classList.add('border-red-500', 'bg-red-50');
@@ -705,7 +713,7 @@
             state.selectedCommand = null;
             state.navFailCount = 0;
             if(ui.selectedCommandDisplay) ui.selectedCommandDisplay.textContent = "上のリストからフレーズを選んでね";
-            if(ui.navSkipBtn) ui.navSkipBtn.classList.add('hidden');
+            if(ui.skipBtn) ui.skipBtn.classList.add('hidden');
             const items = document.querySelectorAll('#command-list li');
             if(items) {
                 items.forEach(item => {
@@ -787,49 +795,33 @@
             const by = state.target.by;
             const currentDir = ((state.bearRot / 90) % 4 + 4) % 4; // 0:N, 1:E, 2:S, 3:W
             
-            const turns = [
-                { turn: 'left', dirOffset: 3 },
-                { turn: 'right', dirOffset: 1 }
-            ];
+            let isValid = false;
+            let side = '';
             
-            for (let t of turns) {
-                const newDir = (currentDir + t.dirOffset) % 4;
-                let isValid = false;
-                let side = '';
-                
-                if (newDir === 0) {
-                    if (state.bearNy === by + 1) {
-                        if (state.bearNx === bx) { isValid = true; side = 'right'; }
-                        if (state.bearNx === bx + 1) { isValid = true; side = 'left'; }
-                    }
-                } else if (newDir === 1) {
-                    if (state.bearNx === bx) {
-                        if (state.bearNy === by) { isValid = true; side = 'right'; }
-                        if (state.bearNy === by + 1) { isValid = true; side = 'left'; }
-                    }
-                } else if (newDir === 2) {
-                    if (state.bearNy === by) {
-                        if (state.bearNx === bx) { isValid = true; side = 'left'; }
-                        if (state.bearNx === bx + 1) { isValid = true; side = 'right'; }
-                    }
-                } else if (newDir === 3) {
-                    if (state.bearNx === bx + 1) {
-                        if (state.bearNy === by) { isValid = true; side = 'left'; }
-                        if (state.bearNy === by + 1) { isValid = true; side = 'right'; }
-                    }
-                }
-                
-                if (isValid) {
-                    const neighborStr = state.neighbor.word;
-                    return { 
-                        sentences: [
-                            `Turn ${t.turn}.`,
-                            `You can see it on your ${side}.`,
-                            `It's by the ${neighborStr}.`
-                        ],
-                        turn: t.turn, side: side, neighbor: neighborStr
-                    };
-                }
+            // クマの現在の進行方向に対して、ターゲットが左右のどちらにあるかを判定
+            if (currentDir === 0 && state.bearNy === by + 1) { // 北向きで、建物の南側の道にいる
+                if (state.bearNx === bx) { isValid = true; side = 'right'; }
+                else if (state.bearNx === bx + 1) { isValid = true; side = 'left'; }
+            } else if (currentDir === 1 && state.bearNx === bx) { // 東向きで、建物の西側の道にいる
+                if (state.bearNy === by) { isValid = true; side = 'right'; }
+                else if (state.bearNy === by + 1) { isValid = true; side = 'left'; }
+            } else if (currentDir === 2 && state.bearNy === by) { // 南向きで、建物の北側の道にいる
+                if (state.bearNx === bx + 1) { isValid = true; side = 'right'; }
+                else if (state.bearNx === bx) { isValid = true; side = 'left'; }
+            } else if (currentDir === 3 && state.bearNx === bx + 1) { // 西向きで、建物の東側の道にいる
+                if (state.bearNy === by + 1) { isValid = true; side = 'right'; }
+                else if (state.bearNy === by) { isValid = true; side = 'left'; }
+            }
+            
+            if (isValid) {
+                const neighborStr = state.neighbor.word;
+                return { 
+                    sentences: [
+                        `You can see it on your ${side}.`,
+                        `It's by the ${neighborStr}.`
+                    ],
+                    side: side, neighbor: neighborStr
+                };
             }
             return null;
         }
@@ -839,15 +831,25 @@
             state.goalPhraseData = phraseData;
             state.currentGoalStep = 0;
             state.failCount = 0;
-            ui.skipGoalBtn.classList.add('hidden');
+            
+            // コマンドリストを隠し、ゴールフレーズエリアを表示
+            ui.navCommandArea.classList.add('hidden');
+            ui.navCommandArea.classList.remove('flex');
+            ui.goalPhraseArea.classList.remove('hidden');
+            ui.goalPhraseArea.classList.add('flex');
+            
+            ui.skipBtn.classList.add('hidden');
             
             updateGoalModalUI();
-            ui.goalModal.classList.remove('hidden');
-            ui.goalModal.classList.add('flex');
             
             if(state.recognition) { try{ state.recognition.stop(); }catch(e){} }
+            
             ui.mainMicBtn.classList.remove('mic-listening');
-            ui.micStatus.textContent = "目的地周辺に到着！";
+            ui.mainMicBtn.disabled = false;
+            ui.selectedCommandDisplay.textContent = "フレーズを順番に読んでね！";
+            ui.selectedCommandDisplay.className = "text-[13px] font-bold text-green-600 mb-2 h-5";
+            ui.micStatus.textContent = "マイクを押して読む";
+            ui.micStatus.className = "text-sm font-bold text-gray-500 mt-2 h-4";
         }
 
         function updateGoalModalUI() {
@@ -855,14 +857,14 @@
             state.goalPhraseData.sentences.forEach((sentence, idx) => {
                 const isActive = idx === state.currentGoalStep;
                 const isDone = idx < state.currentGoalStep;
-                let className = "text-xl md:text-2xl font-bold leading-relaxed my-3 transition-all duration-300 ";
+                let className = "font-bold leading-relaxed my-1 transition-all duration-300 ";
                 
                 if (isActive) {
-                    className += "text-blue-700 transform scale-110";
+                    className += "text-blue-700 transform scale-105 text-[15px] origin-left";
                 } else if (isDone) {
-                    className += "text-gray-400 line-through opacity-70";
+                    className += "text-gray-400 line-through opacity-70 text-[13px]";
                 } else {
-                    className += "text-gray-400 opacity-70";
+                    className += "text-gray-400 opacity-70 text-[13px]";
                 }
                 
                 html += `<div class="${className}">${highlightPhrase(sentence, isActive)}</div>`;
@@ -873,7 +875,6 @@
         function highlightPhrase(text, isActive) {
             if (!isActive) return text;
             return text
-                .replace(/Turn (left|right)/i, '<span class="text-red-500">Turn $1</span>')
                 .replace(/on your (left|right)/i, 'on your <span class="text-red-500">$1</span>')
                 .replace(/by the ([\w\s]+)\./i, 'by the <span class="text-green-600">$1</span>.');
         }
@@ -891,59 +892,53 @@
             state.recognition.maxAlternatives = 1;
 
             state.recognition.onstart = function() {
+                ui.mainMicBtn.classList.add('mic-listening');
+                ui.micStatus.textContent = "聞いています...";
                 if (state.goalMode) {
-                    ui.goalMicBtn.classList.add('mic-listening');
-                    ui.goalMicStatus.textContent = "聞いています...";
+                    ui.micStatus.className = "text-sm font-bold text-green-600 mt-2 h-4 animate-pulse";
                 } else {
-                    ui.mainMicBtn.classList.add('mic-listening');
-                    ui.micStatus.textContent = "聞いています...";
-                    ui.micStatus.className = "text-sm font-bold text-blue-600 mt-3 h-5 animate-pulse";
+                    ui.micStatus.className = "text-sm font-bold text-blue-600 mt-2 h-4 animate-pulse";
                 }
             };
 
             state.recognition.onresult = function(event) {
                 const transcript = event.results[0][0].transcript;
+                ui.mainMicBtn.classList.remove('mic-listening');
                 if (state.goalMode) {
-                    ui.goalMicBtn.classList.remove('mic-listening');
                     handleGoalSpeech(transcript);
                 } else {
-                    ui.mainMicBtn.classList.remove('mic-listening');
                     handleNavigationSpeech(transcript);
                 }
             };
 
             state.recognition.onerror = function(event) {
-                const btn = state.goalMode ? ui.goalMicBtn : ui.mainMicBtn;
-                const status = state.goalMode ? ui.goalMicStatus : ui.micStatus;
-                
-                btn.classList.remove('mic-listening');
+                ui.mainMicBtn.classList.remove('mic-listening');
                 if (event.error === 'not-allowed') {
-                    status.textContent = "マイクが許可されていません";
-                    status.className = "text-sm font-bold text-red-500 mt-3 h-5";
+                    ui.micStatus.textContent = "マイクが許可されていません";
+                    ui.micStatus.className = "text-sm font-bold text-red-500 mt-2 h-4";
                 } else {
-                    status.textContent = "聞き取れませんでした";
-                    status.className = "text-sm font-bold text-orange-500 mt-3 h-5";
+                    ui.micStatus.textContent = "聞き取れませんでした";
+                    ui.micStatus.className = "text-sm font-bold text-orange-500 mt-2 h-4";
                 }
             };
 
             state.recognition.onend = function() {
                 ui.mainMicBtn.classList.remove('mic-listening');
-                ui.goalMicBtn.classList.remove('mic-listening');
                 if(!state.goalMode && ui.micStatus.textContent === "聞いています...") {
                     ui.micStatus.textContent = "マイクを押して案内する";
-                    ui.micStatus.className = "text-sm font-bold text-gray-500 mt-3 h-5";
+                    ui.micStatus.className = "text-sm font-bold text-gray-500 mt-2 h-4";
                 }
-                if(state.goalMode && ui.goalMicStatus.textContent === "聞いています...") {
-                    ui.goalMicStatus.textContent = "マイクを押して読む";
+                if(state.goalMode && ui.micStatus.textContent === "聞いています...") {
+                    ui.micStatus.textContent = "マイクを押して読む";
+                    ui.micStatus.className = "text-sm font-bold text-gray-500 mt-2 h-4";
                 }
             };
         }
 
-        function toggleMic(isGoal) {
+        function toggleMic() {
             if (!state.recognition || state.isMoving) return;
             try {
-                if ((!isGoal && ui.mainMicBtn.classList.contains('mic-listening')) || 
-                    (isGoal && ui.goalMicBtn.classList.contains('mic-listening'))) {
+                if (ui.mainMicBtn.classList.contains('mic-listening')) {
                     state.recognition.stop();
                 } else {
                     state.recognition.start();
@@ -969,18 +964,14 @@
                 
                 if (cleanTarget.includes("gostraight")) {
                     let targetNum = 0;
-                    if(cleanTarget.includes("1") || cleanTarget.includes("one")) targetNum = 1;
-                    if(cleanTarget.includes("2") || cleanTarget.includes("two")) targetNum = 2;
-                    if(cleanTarget.includes("3") || cleanTarget.includes("three")) targetNum = 3;
-                    if(cleanTarget.includes("4") || cleanTarget.includes("four")) targetNum = 4;
-                    if(cleanTarget.includes("5") || cleanTarget.includes("five")) targetNum = 5;
+                    if(cleanTarget.includes("one")) targetNum = 1;
+                    if(cleanTarget.includes("two")) targetNum = 2;
+                    if(cleanTarget.includes("three")) targetNum = 3;
 
                     let spokenNum = 0;
                     if(cleanText.includes("1") || cleanText.includes("one")) spokenNum = 1;
                     if(cleanText.includes("2") || cleanText.includes("two") || cleanText.includes("to") || cleanText.includes("too")) spokenNum = 2;
                     if(cleanText.includes("3") || cleanText.includes("three")) spokenNum = 3;
-                    if(cleanText.includes("4") || cleanText.includes("four") || cleanText.includes("for")) spokenNum = 4;
-                    if(cleanText.includes("5") || cleanText.includes("five")) spokenNum = 5;
 
                     if (cleanText.includes("go") && cleanText.includes("straight") && targetNum === spokenNum) {
                         isSuccess = true;
@@ -995,14 +986,14 @@
                     ui.micStatus.textContent = "Excellent! ✨";
                     ui.micStatus.className = "text-[13px] font-bold text-green-500 mt-2 h-4";
                     state.navFailCount = 0;
-                    if(ui.navSkipBtn) ui.navSkipBtn.classList.add('hidden');
+                    if(ui.skipBtn) ui.skipBtn.classList.add('hidden');
                     executeCommand(state.selectedCommand);
                 } else {
                     state.navFailCount++;
                     ui.micStatus.textContent = `「${text}」と聞こえました。もう一度！`;
                     ui.micStatus.className = "text-[12px] font-bold text-orange-500 mt-2 h-4";
                     if (state.navFailCount >= 3) {
-                        if(ui.navSkipBtn) ui.navSkipBtn.classList.remove('hidden');
+                        if(ui.skipBtn) ui.skipBtn.classList.remove('hidden');
                     }
                 }
             }, 800);
@@ -1012,7 +1003,7 @@
             if (state.isMoving || state.goalMode) return;
             state.selectedCommand = cmd;
             state.navFailCount = 0;
-            if(ui.navSkipBtn) ui.navSkipBtn.classList.add('hidden');
+            if(ui.skipBtn) ui.skipBtn.classList.add('hidden');
             
             ui.mainMicBtn.disabled = false;
             
@@ -1037,7 +1028,10 @@
             
             const resetCommandSelection = () => {
                 state.selectedCommand = null;
-                ui.mainMicBtn.disabled = true;
+                // ゴール到着時はマイクを無効化しない
+                if (!state.goalMode) {
+                    ui.mainMicBtn.disabled = true;
+                }
                 if(ui.selectedCommandDisplay) ui.selectedCommandDisplay.textContent = "上のリストからフレーズを選んでね";
                 const items = document.querySelectorAll('#command-list li');
                 if(items) {
@@ -1060,11 +1054,10 @@
                 resetCommandSelection();
             } else if (lowerCmd.includes("go straight")) {
                 let blocks = 0;
-                if (lowerCmd.includes("1")) blocks = 1;
-                if (lowerCmd.includes("2")) blocks = 2;
-                if (lowerCmd.includes("3")) blocks = 3;
-                if (lowerCmd.includes("4")) blocks = 4;
-                if (lowerCmd.includes("5")) blocks = 5;
+                if (lowerCmd.includes("one")) blocks = 1;
+                if (lowerCmd.includes("two")) blocks = 2;
+                if (lowerCmd.includes("three")) blocks = 3;
+                
                 if (blocks >= 1) {
                     moveBearAnimated(blocks).then(() => {
                         resetCommandSelection();
@@ -1082,35 +1075,29 @@
             let isSuccess = false;
             
             if (state.currentGoalStep === 0) {
-                // "Turn left/right."
-                if (cleanText.includes("turn") && cleanText.includes(state.goalPhraseData.turn)) isSuccess = true;
-            } else if (state.currentGoalStep === 1) {
                 // "You can see it on your left/right."
                 if (cleanText.includes("see") && cleanText.includes(state.goalPhraseData.side)) isSuccess = true;
-            } else if (state.currentGoalStep === 2) {
+            } else if (state.currentGoalStep === 1) {
                 // "It's by the xxx."
                 const neighborClean = state.goalPhraseData.neighbor.toLowerCase().replace(/[^a-z0-9\s]/g, '');
                 if (cleanText.includes("by") && cleanText.includes(neighborClean)) isSuccess = true;
             }
 
             if (isSuccess || cleanText.includes(targetSentence)) {
-                ui.goalMicStatus.textContent = "Good! 次の文を読んでね";
-                ui.goalMicStatus.className = "text-lg font-bold text-green-500 h-6";
+                ui.micStatus.textContent = "Good! 次の文を読んでね";
+                ui.micStatus.className = "text-sm font-bold text-green-500 h-4 mt-2";
                 state.failCount = 0;
-                ui.skipGoalBtn.classList.add('hidden');
+                if(ui.skipBtn) ui.skipBtn.classList.add('hidden');
                 
                 state.currentGoalStep++;
                 
-                if (state.currentGoalStep >= 3) {
-                    ui.goalMicStatus.textContent = "Great Job!! ✨";
-                    const finalDirOffset = state.goalPhraseData.turn === 'left' ? -1 : 1;
-                    state.bearRot += finalDirOffset * 90;
-                    updateBearVisual();
+                if (state.currentGoalStep >= 2) {
+                    ui.micStatus.textContent = "Great Job!! ✨";
 
                     setTimeout(() => {
-                        ui.goalModal.classList.add('hidden');
-                        ui.goalModal.classList.remove('flex');
-                        
+                        ui.goalPhraseArea.classList.add('hidden');
+                        ui.goalPhraseArea.classList.remove('flex');
+
                         state.goalCount++;
                         if (state.goalCount === 1) {
                             showNoteModal();
@@ -1123,41 +1110,41 @@
                 }
             } else {
                 state.failCount++;
-                ui.goalMicStatus.textContent = `「${text}」と聞こえました。もう一度！`;
-                ui.goalMicStatus.className = "text-sm font-bold text-orange-500 h-6";
-                if(state.failCount >= 3) ui.skipGoalBtn.classList.remove('hidden');
+                ui.micStatus.textContent = `「${text}」と聞こえました。もう一度！`;
+                ui.micStatus.className = "text-[12px] font-bold text-orange-500 mt-2 h-4";
+                if(state.failCount >= 3) {
+                    if(ui.skipBtn) ui.skipBtn.classList.remove('hidden');
+                }
             }
         }
 
         function setupEventListeners() {
-            ui.mainMicBtn.addEventListener('click', () => toggleMic(false));
-            ui.goalMicBtn.addEventListener('click', () => toggleMic(true));
+            ui.mainMicBtn.addEventListener('click', () => toggleMic());
             
-            if(ui.navSkipBtn) {
-                ui.navSkipBtn.addEventListener('click', () => {
-                    ui.navSkipBtn.classList.add('hidden');
-                    state.navFailCount = 0;
-                    ui.micStatus.textContent = "スキップしました";
-                    ui.micStatus.className = "text-sm font-bold text-blue-500 mt-2 h-4";
-                    executeCommand(state.selectedCommand);
+            if(ui.skipBtn) {
+                ui.skipBtn.addEventListener('click', () => {
+                    ui.skipBtn.classList.add('hidden');
+                    
+                    if (state.goalMode) {
+                        // ゴールフレーズ発話のスキップ
+                        ui.goalPhraseArea.classList.add('hidden');
+                        ui.goalPhraseArea.classList.remove('flex');
+
+                        state.goalCount++;
+                        if (state.goalCount === 1) {
+                            showNoteModal();
+                        } else {
+                            showCharacterSelectModal();
+                        }
+                    } else {
+                        // 案内コマンド発話のスキップ
+                        state.navFailCount = 0;
+                        ui.micStatus.textContent = "スキップしました";
+                        ui.micStatus.className = "text-sm font-bold text-blue-500 mt-2 h-4";
+                        executeCommand(state.selectedCommand);
+                    }
                 });
             }
-            
-            ui.skipGoalBtn.addEventListener('click', () => {
-                ui.goalModal.classList.add('hidden');
-                ui.goalModal.classList.remove('flex');
-                
-                const finalDirOffset = state.goalPhraseData.turn === 'left' ? -1 : 1;
-                state.bearRot += finalDirOffset * 90;
-                updateBearVisual();
-
-                state.goalCount++;
-                if (state.goalCount === 1) {
-                    showNoteModal();
-                } else {
-                    showCharacterSelectModal();
-                }
-            });
 
             document.getElementById('btn-close-note').addEventListener('click', () => {
                 document.getElementById('note-modal').classList.add('hidden');
@@ -1220,8 +1207,11 @@
             
             state.selectedCommand = null;
             state.navFailCount = 0;
-            if(ui.selectedCommandDisplay) ui.selectedCommandDisplay.textContent = "上のリストからフレーズを選んでね";
-            if(ui.navSkipBtn) ui.navSkipBtn.classList.add('hidden');
+            if(ui.selectedCommandDisplay) {
+                ui.selectedCommandDisplay.textContent = "上のリストからフレーズを選んでね";
+                ui.selectedCommandDisplay.className = "text-[13px] font-bold text-blue-600 mb-2 h-5";
+            }
+            if(ui.skipBtn) ui.skipBtn.classList.add('hidden');
             const items = document.querySelectorAll('#command-list li');
             if(items) {
                 items.forEach(item => {
@@ -1234,10 +1224,14 @@
             ui.targetInfo.classList.remove('flex');
             ui.statusBox.classList.remove('hidden');
             
+            // エリアの表示リセット
+            ui.goalPhraseArea.classList.add('hidden');
+            ui.goalPhraseArea.classList.remove('flex');
+            ui.navCommandArea.classList.remove('hidden');
+            ui.navCommandArea.classList.add('flex');
+            
             ui.micStatus.textContent = "マイクを押して案内する";
-            ui.micStatus.className = "text-sm font-bold text-gray-500 mt-3 h-5";
-            ui.goalMicStatus.textContent = "マイクを押して読む";
-            ui.goalMicStatus.className = "text-sm font-bold text-gray-500 h-6";
+            ui.micStatus.className = "text-sm font-bold text-gray-500 mt-2 h-4";
         }
 
         function showToast(message) {
@@ -1597,7 +1591,7 @@
         function showGachaModal() {
             const modal = document.getElementById('gacha-modal');
             document.getElementById('result-coins').textContent = state.gameScore;
-            state.gachaCount += Math.floor(state.gameScore / 10);
+            state.gachaCount += Math.floor(state.gameScore / 30);
             showGachaArea();
             modal.style.display = 'flex';
         }
